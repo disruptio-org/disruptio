@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  passwordHash  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  memberships   WorkspaceMember[]
+  projects      Project[]
+}
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     WorkspaceMember[]
+  projects    Project[]
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        String   @default("owner")
+  createdAt   DateTime @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model Project {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  createdByUserId String
+  name            String
+  description     String?
+  productType     String?
+  businessGoal    String?
+  targetUsers     String?
+  currentStage    String?
+  source          String   @default("manual")
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  workspace       Workspace @relation(fields: [workspaceId], references: [id])
+  createdBy       User      @relation(fields: [createdByUserId], references: [id])
+
+  personas        ProjectPersona[]
+  guidelines      ProjectGuidelines?
+  technology      ProjectTechnology?
+  designStyle     ProjectDesignStyle?
+  githubConnection GitHubConnection?
+  contextItems    ProjectContextItem[]
+  agents          AgentConfiguration[]
+}
+
+model ProjectPersona {
+  id              String   @id @default(cuid())
+  projectId       String
+  name            String
+  role            String?
+  description     String?
+  goals           String?
+  painPoints      String?
+  technicalLevel  String?
+  workflows       String?
+  decisionInfluence String?
+  needs           String?
+  risks           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  project         Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ProjectGuidelines {
+  id                    String   @id @default(cuid())
+  projectId             String   @unique
+  uxPrinciples          String?
+  navigationPrinciples  String?
+  formBehavior          String?
+  emptyStateRules       String?
+  loadingStateRules     String?
+  errorStateRules       String?
+  permissionBehavior    String?
+  accessibilityRules    String?
+  responsiveRules       String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  project               Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ProjectDesignStyle {
+  id                String   @id @default(cuid())
+  projectId         String   @unique
+  brandPersonality  String?
+  colorPalette      String?
+  typography        String?
+  spacing           String?
+  componentStyle    String?
+  iconography       String?
+  tone              String?
+  dos               String?
+  donts             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  project           Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ProjectTechnology {
+  id                  String   @id @default(cuid())
+  projectId           String   @unique
+  frontend            String?
+  backend             String?
+  database            String?
+  authentication      String?
+  aiLayer             String?
+  githubIntegration   String?
+  deployment          String?
+  testing             String?
+  security            String?
+  decisions           String?
+  openQuestions       String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  project             Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model GitHubConnection {
+  id                  String   @id @default(cuid())
+  projectId           String   @unique
+  provider            String   @default("github")
+  owner               String
+  repository          String
+  repositoryUrl       String
+  defaultBranch       String?
+  installationId      String?
+  accessTokenEncrypted String?
+  connectedAt         DateTime @default(now())
+  lastScannedAt       DateTime?
+  status              String   @default("connected")
+
+  project             Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scans               GitHubRepositoryScan[]
+}
+
+model GitHubRepositoryScan {
+  id                  String   @id @default(cuid())
+  githubConnectionId  String
+  branch              String?
+  detectedFrameworks  String?
+  detectedLanguages   String?
+  importantFiles      String?
+  fileTreeSummary     String?
+  readmeSummary       String?
+  rawMetadata         String?
+  createdAt           DateTime @default(now())
+
+  githubConnection    GitHubConnection @relation(fields: [githubConnectionId], references: [id], onDelete: Cascade)
+}
+
+model AgentConfiguration {
+  id                  String   @id @default(cuid())
+  projectId           String
+  agentType           String
+  name                String
+  description         String?
+  systemInstructions  String?
+  enabled             Boolean  @default(true)
+  allowedContext      String?
+  allowedActions      String?
+  model               String?
+  temperature         Float?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  project             Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  runs                AgentRun[]
+}
+
+model AgentRun {
+  id                   String   @id @default(cuid())
+  agentConfigurationId String
+  status               String   @default("pending")
+  input                String?
+  output               String?
+  error                String?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime @default(now())
+
+  agentConfiguration   AgentConfiguration @relation(fields: [agentConfigurationId], references: [id], onDelete: Cascade)
+}
+
+model ProjectContextItem {
+  id          String   @id @default(cuid())
+  projectId   String
+  type        String
+  title       String
+  content     String
+  source      String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
