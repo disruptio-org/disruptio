@@ -15,12 +15,50 @@ interface DiagnosticResult {
 export default function AgentsContent({ project }: { project: any }) {
   const router = useRouter();
   const [agents, setAgents] = useState(project.agents.map((a: any) => ({ ...a, open: false })));
-  const [diagnostics, setDiagnostics] = useState<Record<string, { loading: boolean; result?: DiagnosticResult }>>({});
+  const [diagnostics, setDiagnostics] = useState<Record<string, { loading: boolean; result?: DiagnosticResult }>>({}); 
   const [planFeature, setPlanFeature] = useState('');
   const [planStory, setPlanStory] = useState('');
   const [planning, setPlanning] = useState(false);
   const [implementationPlan, setImplementationPlan] = useState<any>(null);
   const hasKnowledge = !!project.repositoryKnowledge;
+
+  // Create agent state
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newAgent, setNewAgent] = useState({
+    name: '', agentType: '', description: '', systemInstructions: '',
+    allowedContext: [] as string[], model: 'gpt-4', temperature: 0.3,
+  });
+
+  const CONTEXT_OPTIONS = ['Product Context', 'Tech View', 'GitHub Repo', 'Repository Knowledge', 'Personas', 'UX/UI Rules', 'Design Style', 'Features'];
+
+  const createAgent = async () => {
+    if (!newAgent.name.trim() || !newAgent.agentType.trim() || creating) return;
+    setCreating(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/agents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAgent),
+      });
+      if (res.ok) {
+        const agent = await res.json();
+        setAgents((prev: any[]) => [...prev, { ...agent, open: false }]);
+        setNewAgent({ name: '', agentType: '', description: '', systemInstructions: '', allowedContext: [], model: 'gpt-4', temperature: 0.3 });
+        setShowCreate(false);
+      }
+    } catch { /* */ }
+    setCreating(false);
+  };
+
+  const deleteAgent = async (agentId: string) => {
+    try {
+      const res = await fetch(`/api/projects/${project.id}/agents?agentId=${agentId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAgents((prev: any[]) => prev.filter((a) => a.id !== agentId));
+      }
+    } catch { /* */ }
+  };
 
   const requestPlan = async () => {
     if (!planFeature.trim() || planning) return;
@@ -123,10 +161,75 @@ export default function AgentsContent({ project }: { project: any }) {
 
   return (
     <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '22px' }}>
-      <div>
-        <div className="ds-section-title">AGENTS</div>
-        <div style={{ marginTop: '8px', fontSize: '12px', color: '#6A6A6A' }}>Activation console. Each agent compiles its context sources into a system prompt at run time. Run diagnostics to evaluate context health.</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div className="ds-section-title">AGENTS</div>
+          <div style={{ marginTop: '8px', fontSize: '12px', color: '#6A6A6A' }}>Activation console. Each agent compiles its context sources into a system prompt at run time. Run diagnostics to evaluate context health.</div>
+        </div>
+        <button className="ds-btn-primary ds-btn-sm" onClick={() => setShowCreate(true)} style={{ letterSpacing: '.1em' }}>[ + NEW AGENT ]</button>
       </div>
+
+      {/* Create Agent Form */}
+      {showCreate && (
+        <div className="ds-card" style={{ animation: 'dsFadeIn .2s ease-out', borderColor: '#FF2A2A33' }}>
+          <div className="ds-label" style={{ marginBottom: '14px', color: '#FF2A2A' }}>CREATE CUSTOM AGENT</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>AGENT NAME</div>
+                <input className="ds-input" style={{ width: '100%' }} value={newAgent.name} onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })} placeholder="e.g. Security Auditor" autoFocus />
+              </div>
+              <div>
+                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>AGENT TYPE (CODE)</div>
+                <input className="ds-input" style={{ width: '100%' }} value={newAgent.agentType} onChange={(e) => setNewAgent({ ...newAgent, agentType: e.target.value })} placeholder="e.g. security-auditor" />
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>DESCRIPTION</div>
+              <input className="ds-input" style={{ width: '100%' }} value={newAgent.description} onChange={(e) => setNewAgent({ ...newAgent, description: e.target.value })} placeholder="What does this agent do?" />
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>SYSTEM INSTRUCTIONS</div>
+              <textarea className="ds-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', fontFamily: '"JetBrains Mono", monospace', fontSize: '11px' }} value={newAgent.systemInstructions} onChange={(e) => setNewAgent({ ...newAgent, systemInstructions: e.target.value })} placeholder="You are a... Your responsibilities include..." />
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '6px' }}>CONTEXT SOURCES</div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {CONTEXT_OPTIONS.map((ctx) => {
+                  const isSelected = newAgent.allowedContext.includes(ctx);
+                  return (
+                    <button key={ctx} onClick={() => setNewAgent({ ...newAgent, allowedContext: isSelected ? newAgent.allowedContext.filter((c) => c !== ctx) : [...newAgent.allowedContext, ctx] })} style={{ padding: '3px 10px', fontSize: '10px', letterSpacing: '.08em', cursor: 'pointer', background: isSelected ? '#FF2A2A18' : 'transparent', border: `1px solid ${isSelected ? '#FF2A2A' : '#2A2A2A'}`, color: isSelected ? '#FF2A2A' : '#5A5A5A' }}>
+                      {ctx}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>MODEL</div>
+                <select className="ds-input" style={{ width: '100%', appearance: 'none', cursor: 'pointer' }} value={newAgent.model} onChange={(e) => setNewAgent({ ...newAgent, model: e.target.value })}>
+                  <option value="gpt-4">GPT-4</option>
+                  <option value="gpt-4o">GPT-4o</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                  <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                  <option value="gemini-pro">Gemini Pro</option>
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>TEMPERATURE ({newAgent.temperature})</div>
+                <input type="range" min="0" max="1" step="0.1" value={newAgent.temperature} onChange={(e) => setNewAgent({ ...newAgent, temperature: parseFloat(e.target.value) })} style={{ width: '100%', accentColor: '#FF2A2A' }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+              <button className="ds-btn-primary ds-btn-sm" onClick={createAgent} disabled={creating || !newAgent.name.trim() || !newAgent.agentType.trim()}>
+                {creating ? 'CREATING...' : '[ CREATE AGENT ]'}
+              </button>
+              <button className="ds-btn-ghost ds-btn-sm" onClick={() => setShowCreate(false)}>CANCEL</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Implementation Planner — Solution Architect */}
       <div className="ds-card" style={{ borderColor: '#FF2A2A33' }}>
@@ -255,19 +358,28 @@ export default function AgentsContent({ project }: { project: any }) {
           const diag = diagnostics[agent.id];
           return (
             <div key={agent.id} style={{ borderBottom: '1px solid #161616' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr auto auto', gap: '20px', alignItems: 'center', padding: '18px 20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr auto auto auto', gap: '20px', alignItems: 'center', padding: '18px 20px' }}>
                 <button className={`ds-toggle ${agent.enabled ? 'ds-toggle--active' : 'ds-toggle--inactive'}`} onClick={() => toggleAgent(agent)}>
                   {agent.enabled ? 'ACTIVE' : 'DISABLED'}
                 </button>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span className="ds-code-badge">{code}</span>
                     <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '13.5px' }}>{agent.name}</span>
                   </div>
-                  <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {sources.map((s: string) => (<span key={s} className="ds-badge">[{s}]</span>))}
+                  <div style={{ marginTop: '4px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {sources.map((s: string) => (
+                      <span key={s} className="ds-badge">[{s}]</span>
+                    ))}
                   </div>
                 </div>
+                <span
+                  style={{ color: '#3A3A3A', fontSize: '16px', cursor: 'pointer', padding: '0 4px' }}
+                  onClick={() => deleteAgent(agent.id)}
+                  title="Delete agent"
+                >
+                  ×
+                </span>
                 <span style={{ fontSize: '11px', color: '#5A5A5A' }}>
                   {diag?.result ? (
                     <span style={{ color: statusColors[diag.result.status] }}>
