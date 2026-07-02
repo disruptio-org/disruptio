@@ -1,0 +1,36 @@
+{
+  "name": "Minimal Project",
+  "description": "A test project with minimal context",
+  "context": {
+    "hasDescription": true,
+    "hasBusinessGoal": false,
+    "personaCount": 0,
+    "hasGuidelines": false,
+    "hasTechnology": false,
+    "hasDesignStyle": false,
+    "hasGithubConnection": false,
+    "contextItemCount": 0
+  },
+  "expectedResults": {
+    "solution-architect": {
+      "status": "critical",
+      "minIssues": 2,
+      "architectureReadiness": "INSUFFICIENT"
+    },
+    "design": {
+      "status": "critical",
+      "minIssues": 3,
+      "designReadiness": "INSUFFICIENT"
+    },
+    "planning": {
+      "status": "critical",
+      "minIssues": 2,
+      "planningReadiness": "INSUFFICIENT"
+    },
+    "qa-test": {
+      "status": "critical",
+      "minIssues": 3,
+      "testReadiness": "INSUFFICIENT"
+    }
+  }
+}

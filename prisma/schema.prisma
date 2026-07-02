@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -135,7 +135,7 @@ model ProjectTechnology {
   testing             String?
   security            String?
   decisions           String?
-  openQuestions       String?
+  openQuestions        String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -164,12 +164,12 @@ model GitHubRepositoryScan {
   id                  String   @id @default(cuid())
   githubConnectionId  String
   branch              String?
-  detectedFrameworks  String?
-  detectedLanguages   String?
-  importantFiles      String?
-  fileTreeSummary     String?
+  detectedFrameworks  Json?
+  detectedLanguages   Json?
+  importantFiles      Json?
+  fileTreeSummary     Json?
   readmeSummary       String?
-  rawMetadata         String?
+  rawMetadata         Json?
   createdAt           DateTime @default(now())
 
   githubConnection    GitHubConnection @relation(fields: [githubConnectionId], references: [id], onDelete: Cascade)
@@ -183,8 +183,8 @@ model AgentConfiguration {
   description         String?
   systemInstructions  String?
   enabled             Boolean  @default(true)
-  allowedContext      String?
-  allowedActions      String?
+  allowedContext      Json?
+  allowedActions      Json?
   model               String?
   temperature         Float?
   createdAt           DateTime @default(now())
@@ -198,8 +198,8 @@ model AgentRun {
   id                   String   @id @default(cuid())
   agentConfigurationId String
   status               String   @default("pending")
-  input                String?
-  output               String?
+  input                Json?
+  output               Json?
   error                String?
   startedAt            DateTime?
   completedAt          DateTime?
@@ -215,7 +215,7 @@ model ProjectContextItem {
   title       String
   content     String
   source      String?
-  metadata    String?
+  metadata    Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

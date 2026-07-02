@@ -1,0 +1,25 @@
+#!/bin/sh
+
+echo "🛡️ Running pre-commit validation..."
+
+# 1. Block hardcoded secrets using a regex scan
+if git diff --cached | grep -E -q '(password|DATABASE_URL|secret|JWT_SECRET)[[:space:]]*=[[:space:]]*["'"'"'][a-zA-Z0-9_-]+["'"'"']'; then
+  echo "❌ Error: Hardcoded credentials detected in staging index. Commit aborted."
+  exit 1
+fi
+
+# 2. Assert all Typescript files compile successfully
+echo "Checking Typescript compilability..."
+npm run type-check || {
+  echo "❌ Error: Code failed static type compliance check. Commit aborted."
+  exit 1
+}
+
+# 3. Assert all tests are passing before permitting commit
+echo "Running unit test suite..."
+npm run test:run || {
+  echo "❌ Error: Test suite contains failures. Commit aborted."
+  exit 1
+}
+
+echo "✅ Pre-commit validation passed."

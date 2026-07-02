@@ -1,0 +1,16 @@
+{
+  "skills": [
+    {
+      "name": "PrismaMigrationSkill",
+      "description": "Triggered when database models require alterations, migrations, or sync actions.",
+      "triggerWords": ["prisma", "schema", "database migration", "postgresql model"],
+      "instructionsPath": "evals/skills/prisma-migration.md"
+    },
+    {
+      "name": "DesignSystemComplianceSkill",
+      "description": "Triggered when editing, creating, or compiling UI elements in Next.js or Tailwind.",
+      "triggerWords": ["tailwind", "login component", "color palette", "dashboard styling"],
+      "instructionsPath": "evals/skills/design-compliance.md"
+    }
+  ]
+}

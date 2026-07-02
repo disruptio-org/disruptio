@@ -1,0 +1,37 @@
+{
+  "name": "Complete Project",
+  "description": "A fully configured project with all context modules filled",
+  "context": {
+    "hasDescription": true,
+    "hasBusinessGoal": true,
+    "personaCount": 3,
+    "hasGuidelines": true,
+    "hasTechnology": true,
+    "hasDesignStyle": true,
+    "hasGithubConnection": true,
+    "hasGithubScan": true,
+    "contextItemCount": 5
+  },
+  "expectedResults": {
+    "solution-architect": {
+      "status": "healthy",
+      "maxIssues": 0,
+      "architectureReadiness": "READY"
+    },
+    "design": {
+      "status": "healthy",
+      "maxIssues": 0,
+      "designReadiness": "READY"
+    },
+    "planning": {
+      "status": "healthy",
+      "maxIssues": 0,
+      "planningReadiness": "READY"
+    },
+    "qa-test": {
+      "status": "healthy",
+      "maxIssues": 0,
+      "testReadiness": "READY"
+    }
+  }
+}

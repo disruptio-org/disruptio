@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { DEFAULT_AGENTS } from '@/lib/utils';
+import { cookies } from 'next/headers';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -31,6 +32,10 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { name, description, productType, businessGoal, targetUsers, currentStage, source, githubOwner, githubRepo, githubUrl, defaultBranch } = body;
+
+  // Read the stored GitHub access token
+  const cookieStore = await cookies();
+  const githubToken = cookieStore.get('github_access_token')?.value;
 
   if (!name?.trim()) return NextResponse.json({ error: 'Name required' }, { status: 400 });
 
@@ -64,6 +69,7 @@ export async function POST(req: NextRequest) {
             repository: githubRepo,
             repositoryUrl: githubUrl || `https://github.com/${githubOwner}/${githubRepo}`,
             defaultBranch: defaultBranch || 'main',
+            accessTokenEncrypted: githubToken || null,
           },
         },
       } : {}),
