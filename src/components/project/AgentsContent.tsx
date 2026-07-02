@@ -22,6 +22,35 @@ export default function AgentsContent({ project }: { project: any }) {
   const [implementationPlan, setImplementationPlan] = useState<any>(null);
   const hasKnowledge = !!project.repositoryKnowledge;
 
+  // Agent chat state
+  const [chatInputs, setChatInputs] = useState<Record<string, string>>({});
+  const [chatLoading, setChatLoading] = useState<Record<string, boolean>>({});
+  const [chatResponses, setChatResponses] = useState<Record<string, { response: string; model: string; tokensUsed: { prompt: number; completion: number; total: number } } | null>>({});
+
+  const runAgentChat = async (agentId: string) => {
+    const msg = chatInputs[agentId];
+    if (!msg?.trim() || chatLoading[agentId]) return;
+    setChatLoading((p) => ({ ...p, [agentId]: true }));
+    setChatResponses((p) => ({ ...p, [agentId]: null }));
+    try {
+      const res = await fetch(`/api/projects/${project.id}/agents/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId, message: msg }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setChatResponses((p) => ({ ...p, [agentId]: data }));
+      } else {
+        const err = await res.json();
+        setChatResponses((p) => ({ ...p, [agentId]: { response: `Error: ${err.error}`, model: 'N/A', tokensUsed: { prompt: 0, completion: 0, total: 0 } } }));
+      }
+    } catch {
+      setChatResponses((p) => ({ ...p, [agentId]: { response: 'Network error', model: 'N/A', tokensUsed: { prompt: 0, completion: 0, total: 0 } } }));
+    }
+    setChatLoading((p) => ({ ...p, [agentId]: false }));
+  };
+
   // Create agent state
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -420,6 +449,46 @@ export default function AgentsContent({ project }: { project: any }) {
                         )}
                       </div>
                     </div>
+                  </div>
+
+                  {/* Agent Chat — Run with AI */}
+                  <div style={{ borderTop: '1px solid #1F1F1F', paddingTop: '16px' }}>
+                    <span style={{ fontSize: '10.5px', letterSpacing: '.14em', color: '#FF2A2A' }}>RUN AGENT · OPENAI</span>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                      <input
+                        className="ds-input"
+                        style={{ flex: 1 }}
+                        value={chatInputs[agent.id] || ''}
+                        onChange={(e) => setChatInputs((p) => ({ ...p, [agent.id]: e.target.value }))}
+                        placeholder={`Ask ${agent.name} a question...`}
+                        onKeyDown={(e) => e.key === 'Enter' && runAgentChat(agent.id)}
+                      />
+                      <button
+                        className="ds-btn-primary ds-btn-sm"
+                        onClick={() => runAgentChat(agent.id)}
+                        disabled={chatLoading[agent.id] || !chatInputs[agent.id]?.trim()}
+                        style={{ letterSpacing: '.1em', whiteSpace: 'nowrap' }}
+                      >
+                        {chatLoading[agent.id] ? '[ THINKING... ]' : '[ RUN ]'}
+                      </button>
+                    </div>
+                    {chatResponses[agent.id] && (
+                      <div style={{ marginTop: '12px', animation: 'dsFadeIn .2s ease-out' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ECC71' }} />
+                          <span style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em' }}>
+                            {chatResponses[agent.id]!.model} · {chatResponses[agent.id]!.tokensUsed.total} tokens
+                          </span>
+                        </div>
+                        <div style={{
+                          background: '#0A0A0A', border: '1px solid #1A1A1A', padding: '16px',
+                          fontSize: '12px', color: '#B3B3B3', lineHeight: 1.7, whiteSpace: 'pre-wrap',
+                          fontFamily: '"JetBrains Mono", monospace', maxHeight: '400px', overflowY: 'auto',
+                        }}>
+                          {chatResponses[agent.id]!.response}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Diagnostic Results Panel */}

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import openai from '@/lib/openai';
 
-// POST: Generate an implementation plan for a feature/user story
 export async function POST(req: NextRequest, { params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
 
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { feature, userStory, scope } = await req.json();
+  const { feature, userStory } = await req.json();
 
   if (!feature?.trim()) {
     return NextResponse.json({ error: 'Feature description required' }, { status: 400 });
@@ -35,9 +35,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
     where: { id: projectId },
     include: {
       personas: true,
-      guidelines: true,
       technology: true,
-      designStyle: true,
+      features: { include: { userStories: true } },
     },
   });
 
@@ -45,249 +44,151 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
 
+  // Build a rich context block for the LLM
   const arch = knowledge.architecture as any;
   const apiRoutes = (knowledge.apiRoutes || []) as any[];
   const components = (knowledge.components || []) as any[];
   const dbModels = (knowledge.databaseModels || {}) as Record<string, any>;
   const deps = (knowledge.dependencies || {}) as any;
   const fileIndex = (knowledge.fileIndex || []) as any[];
-  const fileContents = (knowledge.fileContents || {}) as Record<string, string>;
   const testStructure = (knowledge.testStructure || {}) as any;
 
-  // Analyze the feature request against the codebase
-  const featureLower = feature.toLowerCase();
-  const storyLower = (userStory || '').toLowerCase();
-  const combined = featureLower + ' ' + storyLower;
+  const codebaseContext = `
+## Codebase Architecture
+- Pattern: ${arch?.pattern || 'Unknown'}
+- Total files: ${arch?.totalFiles || 0} (${arch?.sourceFiles || 0} source, ${arch?.testFiles || 0} tests)
+- Framework: ${(deps?.runtime || []).join(', ')}
 
-  // Identify affected layers
-  const needsNewApiRoute = combined.includes('api') || combined.includes('endpoint') || combined.includes('backend') || combined.includes('crud');
-  const needsNewComponent = combined.includes('ui') || combined.includes('page') || combined.includes('component') || combined.includes('button') || combined.includes('form') || combined.includes('dashboard');
-  const needsDbChange = combined.includes('model') || combined.includes('database') || combined.includes('schema') || combined.includes('table') || combined.includes('field');
-  const needsAuth = combined.includes('auth') || combined.includes('login') || combined.includes('permission') || combined.includes('role');
-  const needsTest = true; // Always need tests
+## Existing API Routes (${apiRoutes.length})
+${apiRoutes.map((r: any) => `- ${r.methods?.join(',')} ${r.path}`).join('\n')}
 
-  // Find related existing files
-  const keywords = combined.split(/\s+/).filter((w: string) => w.length > 3);
-  const relatedFiles = fileIndex.filter((f: any) => {
-    const pathLower = f.path.toLowerCase();
-    return keywords.some((k: string) => pathLower.includes(k));
-  });
+## Existing Components (${components.length})
+${components.map((c: any) => `- ${c.name} (${c.file}) [${c.estimatedComplexity || 'unknown'}]`).join('\n')}
 
-  const relatedApiRoutes = apiRoutes.filter((r: any) => {
-    const pathLower = r.path.toLowerCase();
-    return keywords.some((k: string) => pathLower.includes(k));
-  });
+## Database Models (${Object.keys(dbModels).length})
+${Object.entries(dbModels).map(([name, info]: [string, any]) => `- ${name}: ${info.fieldCount || '?'} fields`).join('\n')}
 
-  const relatedComponents = components.filter((c: any) => {
-    const nameLower = (c.name || '').toLowerCase();
-    const fileLower = (c.file || '').toLowerCase();
-    return keywords.some((k: string) => nameLower.includes(k) || fileLower.includes(k));
-  });
+## File Index
+${fileIndex.slice(0, 80).map((f: any) => `- ${f.path} (${f.category || 'unknown'})`).join('\n')}
 
-  const relatedModels = Object.entries(dbModels).filter(([name]) => {
-    const nameLower = name.toLowerCase();
-    return keywords.some((k: string) => nameLower.includes(k));
-  });
+## Test Structure
+- Vitest: ${testStructure.hasVitest ? 'Yes' : 'No'}
+- Jest: ${testStructure.hasJest ? 'Yes' : 'No'}
 
-  // Generate subtasks
-  const subtasks: {
-    id: number;
-    title: string;
-    layer: 'backend' | 'frontend' | 'database' | 'testing' | 'config';
-    type: 'create' | 'modify' | 'delete';
-    files: string[];
-    description: string;
-    estimatedComplexity: 'low' | 'medium' | 'high';
-    dependencies: number[];
-  }[] = [];
+## Technology
+- Frontend: ${project.technology?.frontend || 'N/A'}
+- Backend: ${project.technology?.backend || 'N/A'}
+- Database: ${project.technology?.database || 'N/A'}
 
-  let taskId = 1;
+## Existing Features
+${project.features.map((f) => `- ${f.title} [${f.status}] (${f.userStories.length} stories)`).join('\n') || 'None'}
+`;
 
-  // Database layer
-  if (needsDbChange) {
-    subtasks.push({
-      id: taskId++,
-      title: 'Update Prisma schema',
-      layer: 'database',
-      type: 'modify',
-      files: ['prisma/schema.prisma'],
-      description: `Add or modify models related to: ${feature}. Current models: ${Object.keys(dbModels).join(', ')}. Run prisma db push after changes.`,
-      estimatedComplexity: 'medium',
-      dependencies: [],
-    });
+  const systemPrompt = `You are the Solution Architect — the best tech lead in the world. You have deep knowledge of the entire codebase. Your job is to create a precise implementation plan for a feature request.
+
+You MUST respond with valid JSON in exactly this format:
+{
+  "subtasks": [
+    {
+      "id": 1,
+      "title": "Short task title",
+      "layer": "database|backend|frontend|testing|config",
+      "type": "create|modify",
+      "files": ["path/to/file.ts"],
+      "description": "Detailed description of what to do",
+      "estimatedComplexity": "low|medium|high"
+    }
+  ],
+  "impactAnalysis": {
+    "affectedLayers": ["database", "backend", "frontend", "testing"],
+    "existingFilesToModify": ["path/to/existing/file.ts"],
+    "newFilesToCreate": ["path/to/new/file.ts"]
+  },
+  "risks": ["Risk description"],
+  "executionOrder": "Description of recommended execution order",
+  "totalSubtasks": 5,
+  "architectureNotes": "Any important architectural decisions or notes"
+}
+
+Rules:
+1. Always cite specific file paths from the file index — never guess.
+2. Order subtasks: database → backend → frontend → tests.
+3. Separate frontend from backend work.
+4. Always include a testing subtask.
+5. Flag files that touch more than 3 existing files as "high" complexity.
+6. Reference existing patterns (existing routes, components, models) when suggesting new ones.
+7. Be specific — don't say "create a component", say which folder, what props, what state.`;
+
+  const userMessage = `# Feature Request
+${feature}
+
+${userStory ? `# User Story\n${userStory}` : ''}
+
+# Current Codebase
+${codebaseContext}
+
+Generate the implementation plan as JSON.`;
+
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json({ error: 'OPENAI_API_KEY not configured' }, { status: 503 });
   }
 
-  // Backend layer
-  if (needsNewApiRoute) {
-    const existingRoutes = relatedApiRoutes.map((r: any) => `${r.methods.join('/')} ${r.path}`).join(', ');
-
-    subtasks.push({
-      id: taskId++,
-      title: 'Create/update API route',
-      layer: 'backend',
-      type: relatedApiRoutes.length > 0 ? 'modify' : 'create',
-      files: relatedApiRoutes.length > 0
-        ? relatedApiRoutes.map((r: any) => r.file)
-        : [`src/app/api/${feature.toLowerCase().replace(/\s+/g, '-')}/route.ts`],
-      description: relatedApiRoutes.length > 0
-        ? `Modify existing routes: ${existingRoutes}. Add new handlers as needed.`
-        : `Create new API route. Follow existing patterns in ${arch?.pattern || 'Next.js App Router'}. Import prisma from @/lib/prisma.`,
-      estimatedComplexity: 'medium',
-      dependencies: needsDbChange ? [1] : [],
-    });
-  }
-
-  // If no explicit backend need but DB changes exist, still need route updates
-  if (!needsNewApiRoute && needsDbChange) {
-    subtasks.push({
-      id: taskId++,
-      title: 'Update existing API routes for new schema',
-      layer: 'backend',
-      type: 'modify',
-      files: relatedApiRoutes.map((r: any) => r.file).slice(0, 5),
-      description: 'Update Prisma queries and includes to use the new/modified models.',
-      estimatedComplexity: 'low',
-      dependencies: [1],
-    });
-  }
-
-  // Frontend layer
-  if (needsNewComponent) {
-    const relatedCompNames = relatedComponents.map((c: any) => `${c.name} (${c.file})`).join(', ');
-
-    // Page task
-    subtasks.push({
-      id: taskId++,
-      title: 'Create/update page component',
-      layer: 'frontend',
-      type: relatedComponents.length > 0 ? 'modify' : 'create',
-      files: relatedComponents.length > 0
-        ? relatedComponents.map((c: any) => c.file)
-        : [`src/app/${feature.toLowerCase().replace(/\s+/g, '-')}/page.tsx`],
-      description: relatedComponents.length > 0
-        ? `Modify existing components: ${relatedCompNames}. Follow existing Disruptio design system (ds-* classes, dark theme, #FF2A2A accent).`
-        : `Create new page. Use 'use client' for interactivity. Follow Disruptio design: black bg, red accent, JetBrains Mono, ds-* CSS classes.`,
-      estimatedComplexity: 'medium',
-      dependencies: needsNewApiRoute ? [subtasks.find((s) => s.layer === 'backend')?.id || 0].filter(Boolean) : [],
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0.2,
+      max_tokens: 4096,
+      response_format: { type: 'json_object' },
     });
 
-    // Component task (if complex)
-    if (!relatedComponents.length) {
-      subtasks.push({
-        id: taskId++,
-        title: 'Create reusable component',
-        layer: 'frontend',
-        type: 'create',
-        files: [`src/components/${feature.toLowerCase().replace(/\s+/g, '-')}/${feature.replace(/\s+/g, '')}Content.tsx`],
-        description: 'Create as a client component with state management. Use existing ds-card, ds-btn-primary, ds-label CSS classes.',
-        estimatedComplexity: 'medium',
-        dependencies: [taskId - 2],
+    const raw = completion.choices[0]?.message?.content || '{}';
+    let plan;
+    try {
+      plan = JSON.parse(raw);
+    } catch {
+      plan = { error: 'Failed to parse AI response', raw };
+    }
+
+    // Enrich with metadata
+    plan.feature = feature;
+    plan.userStory = userStory || null;
+    plan.timestamp = new Date().toISOString();
+    plan.scanVersion = knowledge.scanVersion;
+    plan.model = 'gpt-4o';
+    plan.tokensUsed = {
+      prompt: completion.usage?.prompt_tokens || 0,
+      completion: completion.usage?.completion_tokens || 0,
+      total: completion.usage?.total_tokens || 0,
+    };
+
+    // Store as agent run
+    const architectAgent = await prisma.agentConfiguration.findFirst({
+      where: { projectId, agentType: 'solution-architect' },
+    });
+
+    if (architectAgent) {
+      await prisma.agentRun.create({
+        data: {
+          agentConfigurationId: architectAgent.id,
+          status: 'completed',
+          input: { type: 'implementation-plan', feature, userStory },
+          output: plan,
+          startedAt: new Date(),
+          completedAt: new Date(),
+        },
       });
     }
+
+    return NextResponse.json(plan);
+  } catch (err: any) {
+    console.error('[Plan AI Error]', err);
+    return NextResponse.json(
+      { error: err.message || 'AI planning failed' },
+      { status: 500 }
+    );
   }
-
-  // Auth layer
-  if (needsAuth) {
-    subtasks.push({
-      id: taskId++,
-      title: 'Add authentication/authorization',
-      layer: 'backend',
-      type: 'modify',
-      files: ['src/lib/auth.ts', ...relatedApiRoutes.map((r: any) => r.file)],
-      description: 'Add getServerSession checks to new routes. Follow existing auth pattern with next-auth.',
-      estimatedComplexity: 'low',
-      dependencies: [],
-    });
-  }
-
-  // Testing layer
-  if (needsTest) {
-    subtasks.push({
-      id: taskId++,
-      title: 'Write unit/integration tests',
-      layer: 'testing',
-      type: 'create',
-      files: [`__tests__/unit/${feature.toLowerCase().replace(/\s+/g, '-')}.test.ts`],
-      description: `Write Vitest tests covering the new functionality. ${testStructure.hasVitest ? 'Vitest is configured.' : 'Set up Vitest first.'} Follow existing test patterns.`,
-      estimatedComplexity: 'medium',
-      dependencies: subtasks.filter((s) => s.layer !== 'testing').map((s) => s.id),
-    });
-  }
-
-  // Build the implementation plan
-  const plan = {
-    feature,
-    userStory: userStory || null,
-    scope: scope || 'full-stack',
-    timestamp: new Date().toISOString(),
-    scanVersion: knowledge.scanVersion,
-
-    // Architecture context
-    architectureContext: {
-      pattern: arch?.pattern,
-      totalFiles: arch?.totalFiles,
-      existingApiRoutes: apiRoutes.length,
-      existingComponents: components.length,
-      existingModels: Object.keys(dbModels).length,
-      testFramework: testStructure.hasVitest ? 'Vitest' : testStructure.hasJest ? 'Jest' : 'None',
-    },
-
-    // Impact analysis
-    impactAnalysis: {
-      affectedLayers: [...new Set(subtasks.map((s) => s.layer))],
-      existingFilesToModify: relatedFiles.filter((f: any) => f.category !== 'config').map((f: any) => f.path),
-      newFilesToCreate: subtasks.filter((s) => s.type === 'create').flatMap((s) => s.files),
-      relatedApiRoutes: relatedApiRoutes.map((r: any) => ({ path: r.path, methods: r.methods })),
-      relatedComponents: relatedComponents.map((c: any) => ({ name: c.name, file: c.file, complexity: c.estimatedComplexity })),
-      relatedDbModels: relatedModels.map(([name, info]) => ({ name, fieldCount: info.fieldCount })),
-    },
-
-    // Subtasks
-    subtasks,
-    totalSubtasks: subtasks.length,
-
-    // Execution order
-    executionOrder: subtasks
-      .sort((a, b) => {
-        const layerOrder: Record<string, number> = { database: 0, backend: 1, frontend: 2, config: 3, testing: 4 };
-        return (layerOrder[a.layer] || 5) - (layerOrder[b.layer] || 5);
-      })
-      .map((s) => ({ id: s.id, title: s.title, layer: s.layer })),
-
-    // Risk assessment
-    risks: [
-      ...(needsDbChange ? ['Schema changes require prisma db push and may affect existing data'] : []),
-      ...(relatedApiRoutes.length > 3 ? ['Multiple API routes affected — high blast radius'] : []),
-      ...(relatedComponents.length > 3 ? ['Many components affected — test UI regressions thoroughly'] : []),
-      ...(!testStructure.hasVitest && !testStructure.hasJest ? ['No test framework — add testing infrastructure first'] : []),
-    ],
-
-    // File contents for reference (only related files)
-    referenceCode: Object.fromEntries(
-      relatedFiles
-        .filter((f: any) => fileContents[f.path])
-        .slice(0, 10)
-        .map((f: any) => [f.path, fileContents[f.path]])
-    ),
-  };
-
-  // Store as an agent run
-  const architectAgent = await prisma.agentConfiguration.findFirst({
-    where: { projectId, agentType: 'solution-architect' },
-  });
-
-  if (architectAgent) {
-    await prisma.agentRun.create({
-      data: {
-        agentConfigurationId: architectAgent.id,
-        status: 'completed',
-        input: { type: 'implementation-plan', feature, userStory, scope },
-        output: plan,
-        startedAt: new Date(),
-        completedAt: new Date(),
-      },
-    });
-  }
-
-  return NextResponse.json(plan);
 }
