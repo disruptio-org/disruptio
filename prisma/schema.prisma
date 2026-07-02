@@ -66,6 +66,7 @@ model Project {
   contextItems    ProjectContextItem[]
   agents          AgentConfiguration[]
   repositoryKnowledge RepositoryKnowledge?
+  features        Feature[]
 }
 
 model ProjectPersona {
@@ -249,4 +250,35 @@ model RepositoryKnowledge {
   updatedAt           DateTime @updatedAt
 
   project             Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Feature {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  priority    String   @default("medium")
+  status      String   @default("draft")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userStories UserStory[]
+}
+
+model UserStory {
+  id                 String   @id @default(cuid())
+  featureId          String
+  persona            String
+  action             String
+  benefit            String
+  acceptanceCriteria Json?
+  complexity         String   @default("medium")
+  status             String   @default("draft")
+  order              Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  feature            Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
 }
