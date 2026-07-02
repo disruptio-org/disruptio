@@ -7,7 +7,9 @@ export default function GitHubContent({ project }: { project: any }) {
   const router = useRouter();
   const conn = project.githubConnection;
   const [scanning, setScanning] = useState(false);
+  const [deepScanning, setDeepScanning] = useState(false);
   const [scanResult, setScanResult] = useState<any>(null);
+  const [deepScanResult, setDeepScanResult] = useState<any>(null);
   const [disconnecting, setDisconnecting] = useState(false);
 
   const handleRescan = async () => {
@@ -37,6 +39,27 @@ export default function GitHubContent({ project }: { project: any }) {
     }
   };
 
+  const handleDeepScan = async () => {
+    if (!conn) return;
+    setDeepScanning(true);
+    setDeepScanResult(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/deep-scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDeepScanResult(data);
+        router.refresh();
+      }
+    } catch (e) {
+      console.error('Deep scan error:', e);
+    } finally {
+      setDeepScanning(false);
+    }
+  };
+
   const handleDisconnect = async () => {
     setDisconnecting(true);
     try {
@@ -51,6 +74,28 @@ export default function GitHubContent({ project }: { project: any }) {
     } finally {
       setDisconnecting(false);
     }
+  };
+
+  // Safely render JSON fields that might be objects
+  const renderLanguages = (langs: any) => {
+    if (!langs) return null;
+    if (typeof langs === 'string') return langs;
+    if (typeof langs === 'object') return Object.keys(langs).join(', ');
+    return String(langs);
+  };
+
+  const renderFrameworks = (frameworks: any) => {
+    if (!frameworks) return [];
+    if (Array.isArray(frameworks)) return frameworks;
+    if (typeof frameworks === 'string') return frameworks.split(', ');
+    return [];
+  };
+
+  const renderFileTree = (summary: any) => {
+    if (!summary) return null;
+    if (typeof summary === 'string') return summary;
+    if (typeof summary === 'object' && summary.summary) return summary.summary;
+    return JSON.stringify(summary);
   };
 
   return (
@@ -83,9 +128,17 @@ export default function GitHubContent({ project }: { project: any }) {
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button className="ds-btn-ghost ds-btn-sm" onClick={handleRescan} disabled={scanning}>
               {scanning ? '[ SCANNING... ]' : 'RESCAN REPOSITORY'}
+            </button>
+            <button
+              className="ds-btn-primary ds-btn-sm"
+              onClick={handleDeepScan}
+              disabled={deepScanning}
+              style={{ letterSpacing: '.1em' }}
+            >
+              {deepScanning ? '[ DEEP SCANNING... ]' : '[ DEEP SCAN — ARCHITECT MODE ]'}
             </button>
             <button className="ds-btn-ghost ds-btn-sm" onClick={() => router.push('/projects/connect-github')}>CHANGE REPOSITORY</button>
             <button
@@ -98,25 +151,68 @@ export default function GitHubContent({ project }: { project: any }) {
             </button>
           </div>
 
+          {/* Deep scan result */}
+          {deepScanResult && (
+            <div className="ds-card" style={{ animation: 'dsFadeIn .3s ease-out', borderColor: '#FF2A2A33' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FF2A2A' }} />
+                <div className="ds-label" style={{ color: '#FF2A2A' }}>SOLUTION ARCHITECT — DEEP SCAN COMPLETE</div>
+                <span style={{ fontSize: '10px', color: '#5A5A5A', marginLeft: 'auto' }}>v{deepScanResult.scanVersion}</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                {[
+                  { label: 'FILES READ', value: deepScanResult.filesRead, color: '#2ECC71' },
+                  { label: 'API ROUTES', value: deepScanResult.apiRouteCount },
+                  { label: 'COMPONENTS', value: deepScanResult.componentCount },
+                  { label: 'DB MODELS', value: deepScanResult.modelCount },
+                ].map((m) => (
+                  <div key={m.label} style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F' }}>
+                    <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em' }}>{m.label}</div>
+                    <div style={{ fontSize: '22px', color: m.color || '#FFFFFF', fontWeight: 700, marginTop: '6px' }}>{m.value}</div>
+                  </div>
+                ))}
+              </div>
+              {deepScanResult.architectureSummary && (
+                <div style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '8px' }}>ARCHITECTURE SUMMARY</div>
+                  <pre style={{ fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: 0, fontFamily: '"JetBrains Mono", monospace' }}>
+                    {deepScanResult.architectureSummary}
+                  </pre>
+                </div>
+              )}
+              {deepScanResult.techStackSummary && (
+                <div style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F' }}>
+                  <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '8px' }}>TECH STACK</div>
+                  <pre style={{ fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: 0, fontFamily: '"JetBrains Mono", monospace' }}>
+                    {deepScanResult.techStackSummary}
+                  </pre>
+                </div>
+              )}
+              <div style={{ marginTop: '12px', fontSize: '11px', color: '#2ECC71' }}>
+                ✓ Repository knowledge stored. Solution Architect is now ready to plan implementations.
+              </div>
+            </div>
+          )}
+
           {/* Live scan result */}
-          {scanResult && (
+          {scanResult && !deepScanResult && (
             <div className="ds-card" style={{ animation: 'dsFadeIn .3s ease-out' }}>
               <div className="ds-label" style={{ marginBottom: '14px' }}>LIVE SCAN RESULTS</div>
               {scanResult.languages && (
                 <div style={{ marginBottom: '10px' }}>
                   <span style={{ fontSize: '10.5px', color: '#6A6A6A', letterSpacing: '.1em' }}>LANGUAGES </span>
-                  <span style={{ fontSize: '12px', color: '#B3B3B3' }}>{scanResult.languages}</span>
+                  <span style={{ fontSize: '12px', color: '#B3B3B3' }}>{renderLanguages(scanResult.languages)}</span>
                 </div>
               )}
               {scanResult.frameworks?.length > 0 && (
                 <div style={{ marginBottom: '10px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {scanResult.frameworks.map((f: string) => (
+                  {renderFrameworks(scanResult.frameworks).map((f: string) => (
                     <span key={f} className="ds-badge" style={{ color: '#2ECC71' }}>{f}</span>
                   ))}
                 </div>
               )}
               {scanResult.fileTreeSummary && (
-                <div style={{ fontSize: '11px', color: '#6A6A6A', marginBottom: '10px' }}>{scanResult.fileTreeSummary}</div>
+                <div style={{ fontSize: '11px', color: '#6A6A6A', marginBottom: '10px' }}>{renderFileTree(scanResult.fileTreeSummary)}</div>
               )}
               {scanResult.importantFiles?.length > 0 && (
                 <div style={{ marginBottom: '10px' }}>
@@ -156,7 +252,7 @@ export default function GitHubContent({ project }: { project: any }) {
           )}
 
           {/* Stored scan history */}
-          {conn.scans?.length > 0 && !scanResult && (
+          {conn.scans?.length > 0 && !scanResult && !deepScanResult && (
             <div className="ds-card">
               <div className="ds-label" style={{ marginBottom: '14px' }}>LATEST SCAN</div>
               <div style={{ color: '#8A8A8A', fontSize: '12px' }}>
@@ -165,21 +261,39 @@ export default function GitHubContent({ project }: { project: any }) {
               {conn.scans[0].detectedLanguages && (
                 <div style={{ marginTop: '8px' }}>
                   <span className="ds-label">LANGUAGES: </span>
-                  <span style={{ color: '#B3B3B3', fontSize: '12px' }}>{conn.scans[0].detectedLanguages}</span>
+                  <span style={{ color: '#B3B3B3', fontSize: '12px' }}>{renderLanguages(conn.scans[0].detectedLanguages)}</span>
                 </div>
               )}
               {conn.scans[0].detectedFrameworks && (
-                <div style={{ marginTop: '8px' }}>
+                <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                   <span className="ds-label">FRAMEWORKS: </span>
-                  <span style={{ color: '#B3B3B3', fontSize: '12px' }}>{conn.scans[0].detectedFrameworks}</span>
+                  {renderFrameworks(conn.scans[0].detectedFrameworks).map((f: string) => (
+                    <span key={f} className="ds-badge" style={{ color: '#2ECC71' }}>{f}</span>
+                  ))}
                 </div>
               )}
               {conn.scans[0].fileTreeSummary && (
                 <div style={{ marginTop: '8px' }}>
                   <span className="ds-label">STRUCTURE: </span>
-                  <span style={{ color: '#B3B3B3', fontSize: '12px' }}>{conn.scans[0].fileTreeSummary}</span>
+                  <span style={{ color: '#B3B3B3', fontSize: '12px' }}>{renderFileTree(conn.scans[0].fileTreeSummary)}</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Repository Knowledge Status */}
+          {project.repositoryKnowledge && (
+            <div className="ds-card" style={{ borderColor: '#FF2A2A22' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ECC71' }} />
+                <div className="ds-label">REPOSITORY KNOWLEDGE ACTIVE</div>
+                <span style={{ fontSize: '10px', color: '#5A5A5A', marginLeft: 'auto' }}>
+                  v{project.repositoryKnowledge.scanVersion} · Updated {new Date(project.repositoryKnowledge.updatedAt).toLocaleString()}
+                </span>
+              </div>
+              <div style={{ fontSize: '11px', color: '#8A8A8A', lineHeight: 1.6 }}>
+                The Solution Architect has memorized this repository. It can now plan feature implementations, identify affected files, and generate subtask breakdowns. Use the Agents page to request implementation plans.
+              </div>
             </div>
           )}
         </>

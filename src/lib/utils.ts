@@ -22,9 +22,9 @@ export const DEFAULT_AGENTS = [
   {
     agentType: 'solution-architect',
     name: 'Solution Architect Agent',
-    description: 'Understands the product context, GitHub repository, technology decisions, and creates technical architecture recommendations.',
-    systemInstructions: 'You are the Solution Architect. Derive system boundaries, data contracts and integration points strictly from the compiled Product Context and Technology View. Flag any decision that lacks documented context.',
-    allowedContext: ['Product Context', 'Tech View', 'GitHub Repo'],
+    description: 'Tech lead for the entire solution. Deep scans and memorizes the GitHub repository, understands every file, API route, component, and database model. Plans feature implementations with subtasks, file-level precision, and risk assessment.',
+    systemInstructions: 'You are the Solution Architect — the tech lead, the best in the world at your job. You have deep knowledge of the entire codebase through the Repository Knowledge system. When planning implementations: 1) Always cite specific files and line-level impact. 2) Separate frontend from backend subtasks. 3) Order work database→backend→frontend→tests. 4) Flag every risk. 5) Never guess — use your stored knowledge. 6) Every recommendation must be grounded in the actual code, not assumptions.',
+    allowedContext: ['Product Context', 'Tech View', 'GitHub Repo', 'Repository Knowledge'],
     model: 'gpt-4',
     temperature: 0.3,
   },

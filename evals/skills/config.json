@@ -11,6 +11,12 @@
       "description": "Triggered when editing, creating, or compiling UI elements in Next.js or Tailwind.",
       "triggerWords": ["tailwind", "login component", "color palette", "dashboard styling"],
       "instructionsPath": "evals/skills/design-compliance.md"
+    },
+    {
+      "name": "SolutionArchitectSkill",
+      "description": "Triggered when the Solution Architect agent performs deep scans, implementation planning, or architecture analysis. This is the tech lead agent.",
+      "triggerWords": ["deep scan", "implementation plan", "architecture", "tech lead", "feature planning", "user story", "subtasks", "which files"],
+      "instructionsPath": "evals/skills/solution-architect.md"
     }
   ]
 }

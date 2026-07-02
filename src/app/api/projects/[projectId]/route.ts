@@ -13,6 +13,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ pro
       technology: true,
       designStyle: true,
       contextItems: { orderBy: { createdAt: 'desc' as const } },
+      repositoryKnowledge: {
+        select: {
+          id: true, scanVersion: true, architecture: true, apiRoutes: true,
+          components: true, databaseModels: true, techStackSummary: true,
+          architectureSummary: true, createdAt: true, updatedAt: true,
+        },
+      },
     },
   });
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });

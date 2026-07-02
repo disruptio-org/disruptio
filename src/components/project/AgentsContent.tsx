@@ -16,6 +16,28 @@ export default function AgentsContent({ project }: { project: any }) {
   const router = useRouter();
   const [agents, setAgents] = useState(project.agents.map((a: any) => ({ ...a, open: false })));
   const [diagnostics, setDiagnostics] = useState<Record<string, { loading: boolean; result?: DiagnosticResult }>>({});
+  const [planFeature, setPlanFeature] = useState('');
+  const [planStory, setPlanStory] = useState('');
+  const [planning, setPlanning] = useState(false);
+  const [implementationPlan, setImplementationPlan] = useState<any>(null);
+  const hasKnowledge = !!project.repositoryKnowledge;
+
+  const requestPlan = async () => {
+    if (!planFeature.trim() || planning) return;
+    setPlanning(true);
+    setImplementationPlan(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feature: planFeature, userStory: planStory || undefined }),
+      });
+      if (res.ok) {
+        setImplementationPlan(await res.json());
+      }
+    } catch { /* */ }
+    setPlanning(false);
+  };
 
   const agentCodeMap: Record<string, string> = {
     'solution-architect': 'ARC', 'design': 'DSN', 'planning': 'PLN', 'qa-test': 'SPC',
@@ -95,11 +117,136 @@ export default function AgentsContent({ project }: { project: any }) {
     return <span style={{ fontSize: '12px', color: isPositive ? '#2ECC71' : isNegative ? '#FF2A2A' : '#B3B3B3' }}>{strVal}</span>;
   };
 
+  const layerColors: Record<string, string> = {
+    database: '#9B59B6', backend: '#3498DB', frontend: '#E67E22', testing: '#2ECC71', config: '#7F8C8D',
+  };
+
   return (
     <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '22px' }}>
       <div>
         <div className="ds-section-title">AGENTS</div>
         <div style={{ marginTop: '8px', fontSize: '12px', color: '#6A6A6A' }}>Activation console. Each agent compiles its context sources into a system prompt at run time. Run diagnostics to evaluate context health.</div>
+      </div>
+
+      {/* Implementation Planner — Solution Architect */}
+      <div className="ds-card" style={{ borderColor: '#FF2A2A33' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+          <span className="ds-code-badge">ARC</span>
+          <span style={{ color: '#FF2A2A', fontWeight: 700, fontSize: '13px', letterSpacing: '.08em' }}>SOLUTION ARCHITECT — IMPLEMENTATION PLANNER</span>
+          {hasKnowledge && (
+            <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#2ECC71' }}>● KNOWLEDGE ACTIVE v{project.repositoryKnowledge.scanVersion}</span>
+          )}
+        </div>
+
+        {!hasKnowledge ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: '#6A6A6A', fontSize: '12px', border: '1px dashed #2A2A2A' }}>
+            Deep scan required. Go to GitHub Repository → click [ DEEP SCAN — ARCHITECT MODE ] to enable implementation planning.
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div>
+                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '6px' }}>FEATURE / REQUIREMENT</div>
+                <input
+                  type="text"
+                  value={planFeature}
+                  onChange={(e) => setPlanFeature(e.target.value)}
+                  placeholder="e.g. Add user notification system with email and in-app alerts"
+                  className="ds-input"
+                  style={{ width: '100%' }}
+                  onKeyDown={(e) => e.key === 'Enter' && requestPlan()}
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '6px' }}>USER STORY (OPTIONAL)</div>
+                <input
+                  type="text"
+                  value={planStory}
+                  onChange={(e) => setPlanStory(e.target.value)}
+                  placeholder="As a user, I want to receive notifications so I stay informed about project updates"
+                  className="ds-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <button
+                className="ds-btn-primary ds-btn-sm"
+                onClick={requestPlan}
+                disabled={planning || !planFeature.trim()}
+                style={{ alignSelf: 'flex-start', letterSpacing: '.1em', marginTop: '4px' }}
+              >
+                {planning ? '[ ANALYZING CODEBASE... ]' : '[ GENERATE IMPLEMENTATION PLAN ]'}
+              </button>
+            </div>
+
+            {/* Implementation Plan Result */}
+            {implementationPlan && (
+              <div style={{ marginTop: '20px', borderTop: '1px solid #1F1F1F', paddingTop: '20px', animation: 'dsFadeIn .3s ease-out' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FF2A2A' }} />
+                  <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '13px' }}>IMPLEMENTATION PLAN</span>
+                  <span style={{ fontSize: '10px', color: '#5A5A5A' }}>{implementationPlan.totalSubtasks} subtasks · {implementationPlan.impactAnalysis.affectedLayers.length} layers</span>
+                </div>
+
+                {/* Subtasks */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                  {implementationPlan.subtasks.map((task: any) => (
+                    <div key={task.id} style={{ background: '#0D0D0D', border: '1px solid #1A1A1A', padding: '14px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                        <span style={{
+                          fontSize: '9px', padding: '2px 8px', letterSpacing: '.1em', fontWeight: 700,
+                          color: layerColors[task.layer] || '#888', border: `1px solid ${layerColors[task.layer] || '#333'}44`,
+                          background: `${layerColors[task.layer] || '#333'}11`,
+                        }}>
+                          {task.layer.toUpperCase()}
+                        </span>
+                        <span style={{ fontSize: '9px', padding: '2px 6px', color: '#5A5A5A', border: '1px solid #2A2A2A' }}>
+                          {task.type.toUpperCase()}
+                        </span>
+                        <span style={{ color: '#FFFFFF', fontSize: '12.5px', fontWeight: 600 }}>{task.title}</span>
+                        <span style={{
+                          marginLeft: 'auto', fontSize: '9px', letterSpacing: '.08em',
+                          color: task.estimatedComplexity === 'high' ? '#FF2A2A' : task.estimatedComplexity === 'medium' ? '#F39C12' : '#2ECC71',
+                        }}>
+                          {task.estimatedComplexity.toUpperCase()}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#8A8A8A', lineHeight: 1.5 }}>{task.description}</div>
+                      {task.files.length > 0 && (
+                        <div style={{ marginTop: '8px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          {task.files.map((f: string) => (
+                            <span key={f} style={{ fontSize: '10px', color: '#6A6A6A', background: '#151515', padding: '2px 6px', fontFamily: '"JetBrains Mono", monospace' }}>
+                              {f}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Impact Analysis */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  {implementationPlan.impactAnalysis.existingFilesToModify.length > 0 && (
+                    <div style={{ background: '#0D0D0D', border: '1px solid #1A1A1A', padding: '14px' }}>
+                      <div style={{ fontSize: '10px', color: '#F39C12', letterSpacing: '.12em', marginBottom: '8px' }}>FILES TO MODIFY</div>
+                      {implementationPlan.impactAnalysis.existingFilesToModify.slice(0, 8).map((f: string) => (
+                        <div key={f} style={{ fontSize: '10.5px', color: '#8A8A8A', fontFamily: '"JetBrains Mono", monospace', marginBottom: '3px' }}>{f}</div>
+                      ))}
+                    </div>
+                  )}
+                  {implementationPlan.risks.length > 0 && (
+                    <div style={{ background: '#0D0D0D', border: '1px solid #FF2A2A22', padding: '14px' }}>
+                      <div style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.12em', marginBottom: '8px' }}>RISKS</div>
+                      {implementationPlan.risks.map((r: string, i: number) => (
+                        <div key={i} style={{ fontSize: '11px', color: '#FF9A9A', marginBottom: '6px', paddingLeft: '10px', borderLeft: '2px solid #FF2A2A33' }}>{r}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
       <div style={{ border: '1px solid #1F1F1F' }}>
         {agents.map((agent: any) => {

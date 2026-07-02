@@ -65,6 +65,7 @@ model Project {
   githubConnection GitHubConnection?
   contextItems    ProjectContextItem[]
   agents          AgentConfiguration[]
+  repositoryKnowledge RepositoryKnowledge?
 }
 
 model ProjectPersona {
@@ -220,4 +221,32 @@ model ProjectContextItem {
   updatedAt   DateTime @updatedAt
 
   project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model RepositoryKnowledge {
+  id                  String   @id @default(cuid())
+  projectId           String   @unique
+  scanVersion         Int      @default(1)
+
+  // Architecture understanding
+  architecture        Json?
+  fileIndex           Json?
+  dependencies        Json?
+  apiRoutes           Json?
+  components          Json?
+  databaseModels      Json?
+  configFiles         Json?
+  testStructure       Json?
+
+  // Raw file contents (key files only)
+  fileContents        Json?
+
+  // Computed summaries
+  techStackSummary    String?
+  architectureSummary String?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  project             Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
