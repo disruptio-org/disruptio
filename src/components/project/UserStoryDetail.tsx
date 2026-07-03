@@ -55,25 +55,24 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
   // --- AI ASSIST ---
   const [aiAgent, setAiAgent] = useState<Record<string, string>>({});
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
-  const [aiResponse, setAiResponse] = useState<Record<string, string>>({});
-  const [aiTokens, setAiTokens] = useState<Record<string, number>>({});
+  const [aiDone, setAiDone] = useState<Record<string, boolean>>({});
 
   const storyContext = `User Story: As a ${story.persona}, I want to ${story.action} so that ${story.benefit}.\nComplexity: ${story.complexity}\nStatus: ${story.status}\nFeature: ${story.feature?.title || 'N/A'}`;
 
   const tabPrompts: Record<TabKey, string> = {
-    story: `Refine and improve this user story. Suggest a better formulation if needed. Make it specific, measurable, and actionable.\n\n${storyContext}`,
-    requirements: `Generate a comprehensive list of functional and non-functional requirements for this user story. Format each as a JSON array: [{"type": "functional"|"non-functional", "description": "...", "priority": "must"|"should"|"could"|"wont"}]\n\n${storyContext}\n\nExisting requirements: ${JSON.stringify(story.requirements || [])}`,
-    acceptance: `Generate acceptance criteria for this user story. Return as a JSON array of strings, each being a clear, testable criterion.\n\n${storyContext}\n\nExisting criteria: ${JSON.stringify(story.acceptanceCriteria || [])}`,
-    gherkin: `Generate Gherkin (BDD) test scenarios for this user story. Return as a JSON array: [{"title": "...", "given": "...", "when": "...", "then": "...", "status": "draft"}]\n\n${storyContext}\n\nExisting scenarios: ${JSON.stringify(story.gherkinScenarios || [])}`,
-    techreview: `Perform a technical review of this user story. Provide: implementation notes, impact analysis (which layers/files affected), risks, and architecture notes.\n\n${storyContext}\n\nReturn as JSON: {"notes": "...", "impactAnalysis": "...", "risks": ["..."], "architectureNotes": "..."}`,
-    planning: `Create an implementation plan with subtasks for this user story. Break it into database, backend, frontend, and testing tasks.\n\n${storyContext}\n\nReturn as JSON: {"subtasks": [{"title": "...", "layer": "database|backend|frontend|testing", "assignee": "", "estimate": "2h", "status": "todo"}], "totalEstimate": "...", "notes": "..."}`,
+    story: `Refine and improve this user story. Return ONLY a JSON object with these exact keys: {"persona": "...", "action": "...", "benefit": "...", "complexity": "low|medium|high"}. Make the story specific, measurable, and actionable. Keep the persona name the same.\n\n${storyContext}`,
+    requirements: `Generate a comprehensive list of functional and non-functional requirements for this user story. Return ONLY a JSON array, no explanation: [{"type": "functional", "description": "...", "priority": "must"}, {"type": "non-functional", "description": "...", "priority": "should"}]. Use priorities: must, should, could, wont.\n\n${storyContext}`,
+    acceptance: `Generate acceptance criteria for this user story. Return ONLY a JSON array of strings, no explanation: ["criterion 1", "criterion 2", ...]. Each should be clear and testable.\n\n${storyContext}`,
+    gherkin: `Generate Gherkin (BDD) test scenarios for this user story. Return ONLY a JSON array, no explanation: [{"title": "...", "given": "...", "when": "...", "then": "...", "status": "draft"}]\n\n${storyContext}`,
+    techreview: `Perform a technical review of this user story. Return ONLY a JSON object, no explanation: {"notes": "...", "impactAnalysis": "...", "risks": ["risk1", "risk2"], "architectureNotes": "..."}\n\n${storyContext}`,
+    planning: `Create an implementation plan with subtasks for this user story. Return ONLY a JSON object, no explanation: {"subtasks": [{"title": "...", "layer": "database|backend|frontend|testing|devops|config", "assignee": "", "estimate": "2h", "status": "todo"}], "totalEstimate": "...", "notes": "..."}\n\n${storyContext}`,
   };
 
   const runAiAssist = async (tab: TabKey) => {
     const agentId = aiAgent[tab];
     if (!agentId || aiLoading[tab]) return;
     setAiLoading((p) => ({ ...p, [tab]: true }));
-    setAiResponse((p) => ({ ...p, [tab]: '' }));
+    setAiDone((p) => ({ ...p, [tab]: false }));
     try {
       const res = await fetch(`/api/projects/${project.id}/agents/run`, {
         method: 'POST',
@@ -82,44 +81,34 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
       });
       if (res.ok) {
         const data = await res.json();
-        setAiResponse((p) => ({ ...p, [tab]: data.response }));
-        setAiTokens((p) => ({ ...p, [tab]: data.tokensUsed?.total || 0 }));
-      } else {
-        const err = await res.json();
-        setAiResponse((p) => ({ ...p, [tab]: `Error: ${err.error}` }));
+        const raw = data.response || '';
+        // Extract JSON and directly apply to fields
+        const jsonMatch = raw.match(/\[[\s\S]*\]/) || raw.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (tab === 'story' && parsed.action) await save({ persona: parsed.persona || story.persona, action: parsed.action, benefit: parsed.benefit || story.benefit, complexity: parsed.complexity || story.complexity });
+            else if (tab === 'requirements' && Array.isArray(parsed)) await save({ requirements: parsed });
+            else if (tab === 'acceptance' && Array.isArray(parsed)) await save({ acceptanceCriteria: parsed });
+            else if (tab === 'gherkin' && Array.isArray(parsed)) await save({ gherkinScenarios: parsed });
+            else if (tab === 'techreview' && parsed.notes) await save({ techReview: parsed });
+            else if (tab === 'planning' && parsed.subtasks) await save({ planning: parsed });
+            setAiDone((p) => ({ ...p, [tab]: true }));
+            setTimeout(() => setAiDone((p) => ({ ...p, [tab]: false })), 3000);
+          } catch { /* JSON parse error */ }
+        }
       }
-    } catch {
-      setAiResponse((p) => ({ ...p, [tab]: 'Network error' }));
-    }
+    } catch { /* network error */ }
     setAiLoading((p) => ({ ...p, [tab]: false }));
-  };
-
-  const applyAiResponse = (tab: TabKey) => {
-    const raw = aiResponse[tab];
-    if (!raw) return;
-    try {
-      // Try to extract JSON from the response
-      const jsonMatch = raw.match(/\[[\s\S]*\]/) || raw.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return;
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (tab === 'requirements' && Array.isArray(parsed)) save({ requirements: parsed });
-      else if (tab === 'acceptance' && Array.isArray(parsed)) save({ acceptanceCriteria: parsed });
-      else if (tab === 'gherkin' && Array.isArray(parsed)) save({ gherkinScenarios: parsed });
-      else if (tab === 'techreview' && parsed.notes) save({ techReview: parsed });
-      else if (tab === 'planning' && parsed.subtasks) save({ planning: parsed });
-    } catch { /* couldn't parse — user can copy manually */ }
   };
 
   const AiAssistPanel = ({ tab }: { tab: TabKey }) => (
     <div style={{ marginTop: '16px', borderTop: '1px solid #1F1F1F', paddingTop: '16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <span style={{ fontSize: '10px', letterSpacing: '.14em', color: '#FF2A2A', fontWeight: 700 }}>AI ASSIST</span>
-        {aiTokens[tab] > 0 && <span style={{ fontSize: '9px', color: '#3A3A3A' }}>· {aiTokens[tab]} tokens</span>}
-      </div>
-      <div style={{ display: 'flex', gap: '8px' }}>
         <select
           className="ds-input"
-          style={{ width: '240px' }}
+          style={{ width: '220px', fontSize: '11px' }}
           value={aiAgent[tab] || ''}
           onChange={(e) => setAiAgent((p) => ({ ...p, [tab]: e.target.value }))}
         >
@@ -136,26 +125,12 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
         >
           {aiLoading[tab] ? '[ GENERATING... ]' : '[ GENERATE WITH AI ]'}
         </button>
-        {aiResponse[tab] && tab !== 'story' && (
-          <button
-            className="ds-btn-ghost ds-btn-sm"
-            onClick={() => applyAiResponse(tab)}
-            style={{ letterSpacing: '.1em', whiteSpace: 'nowrap' }}
-          >
-            [ APPLY ]
-          </button>
+        {aiDone[tab] && (
+          <span style={{ fontSize: '10px', color: '#2ECC71', letterSpacing: '.1em', animation: 'dsFadeIn .2s ease-out' }}>
+            ● FIELDS UPDATED
+          </span>
         )}
       </div>
-      {aiResponse[tab] && (
-        <div style={{
-          marginTop: '10px', background: '#0A0A0A', border: '1px solid #1A1A1A', padding: '14px',
-          fontSize: '11px', color: '#B3B3B3', lineHeight: 1.7, whiteSpace: 'pre-wrap',
-          fontFamily: '"JetBrains Mono", monospace', maxHeight: '350px', overflowY: 'auto',
-          animation: 'dsFadeIn .2s ease-out',
-        }}>
-          {aiResponse[tab]}
-        </div>
-      )}
     </div>
   );
 
