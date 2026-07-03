@@ -405,7 +405,11 @@ export default function FeaturesContent({ project }: { project: any }) {
                         key={story.id}
                         style={{
                           background: '#0D0D0D', border: '1px solid #1A1A1A', padding: '12px 14px',
+                          cursor: 'pointer', transition: 'border-color .15s ease',
                         }}
+                        onClick={() => router.push(`/projects/${project.id}/features/${feature.id}/stories/${story.id}`)}
+                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#FF2A2A44')}
+                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#1A1A1A')}
                       >
                         <div style={{ fontSize: '12px', color: '#B3B3B3', lineHeight: 1.6 }}>
                           As a <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{story.persona}</span>,

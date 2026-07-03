@@ -274,6 +274,10 @@ model UserStory {
   action             String
   benefit            String
   acceptanceCriteria Json?
+  requirements       Json?
+  gherkinScenarios   Json?
+  techReview         Json?
+  planning           Json?
   complexity         String   @default("medium")
   status             String   @default("draft")
   order              Int      @default(0)
