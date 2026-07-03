@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { flushSync } from 'react-dom';
+
 import { useRouter } from 'next/navigation';
 
 interface Requirement { type: 'functional' | 'non-functional'; description: string; priority: string; }
@@ -27,10 +27,16 @@ const COMPLEXITY_COLORS: Record<string, string> = { low: '#2ECC71', medium: '#F3
 export default function UserStoryDetail({ story: initialStory, project }: { story: any; project: any }) {
   const router = useRouter();
   const [story, setStory] = useState(initialStory);
-  const [activeTab, setActiveTab] = useState<TabKey>('story');
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.replace('#', '') as TabKey;
+      if (['story', 'requirements', 'acceptance', 'gherkin', 'techreview', 'planning'].includes(hash)) return hash;
+    }
+    return 'story';
+  });
+  const handleTabChange = (tab: TabKey) => { setActiveTab(tab); window.location.hash = tab; };
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const apiUrl = `/api/projects/${project.id}/features/${story.featureId}/stories/${story.id}`;
   const agents: { id: string; name: string; agentType: string }[] = project.agents || [];
@@ -84,7 +90,6 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
       if (!res.ok) { setAiLoading((p) => ({ ...p, [tab]: false })); return; }
       const data = await res.json();
       const raw = data.response || '';
-      console.log('[AI Assist] Raw response:', raw.substring(0, 300));
 
       // Try to extract JSON — handle markdown code fences too
       let jsonStr = '';
@@ -96,11 +101,9 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
         const objMatch = raw.match(/\{[\s\S]*\}/);
         jsonStr = (arrMatch || objMatch)?.[0] || '';
       }
-      console.log('[AI Assist] Extracted JSON:', jsonStr.substring(0, 300));
 
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);
-        console.log('[AI Assist] Parsed keys:', Object.keys(parsed));
         let patch: Record<string, any> | null = null;
 
         if (tab === 'story' && parsed.action) patch = { persona: parsed.persona || story.persona, action: parsed.action, benefit: parsed.benefit || story.benefit, complexity: parsed.complexity || story.complexity };
@@ -123,32 +126,21 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
           }};
         }
 
-        console.log('[AI Assist] Patch:', JSON.stringify(patch).substring(0, 500));
+
 
         if (patch) {
-          // 1. Save to DB and wait for it
+          // Save to DB and wait for it
           const patchRes = await fetch(apiUrl, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(patch),
           });
-          console.log('[AI Assist] PATCH status:', patchRes.status);
 
           if (patchRes.ok) {
-            // 2. Fetch fresh story from DB
-            const freshRes = await fetch(apiUrl);
-            if (freshRes.ok) {
-              const freshStory = await freshRes.json();
-              console.log('[AI Assist] Fresh story techReview:', JSON.stringify(freshStory.techReview)?.substring(0, 200));
-              console.log('[AI Assist] Fresh story planning:', JSON.stringify(freshStory.planning)?.substring(0, 200));
-              // 3. Replace story state entirely with fresh DB data
-              flushSync(() => {
-                setStory((prev: any) => ({ ...freshStory, feature: freshStory.feature || prev.feature }));
-                setRefreshKey((k) => k + 1);
-              });
-            }
-            setAiDone((p) => ({ ...p, [tab]: true }));
-            setTimeout(() => setAiDone((p) => ({ ...p, [tab]: false })), 3000);
+            // Set hash so reload returns to same tab, then reload
+            window.location.hash = tab;
+            window.location.reload();
+            return;
           }
         }
       }
@@ -431,8 +423,6 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
   // --- TAB 5: TECH REVIEW ---
   const TechReviewTab = () => {
     const existing = (story.techReview || {}) as Partial<TechReviewData>;
-    console.log('[TechReviewTab] Mount — story.techReview:', JSON.stringify(story.techReview)?.substring(0, 300));
-    console.log('[TechReviewTab] existing.notes:', existing.notes);
     const [notes, setNotes] = useState(existing.notes || '');
     const [impact, setImpact] = useState(existing.impactAnalysis || '');
     const [risks, setRisks] = useState<string[]>(existing.risks || []);
@@ -619,7 +609,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
           return (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => handleTabChange(tab.key)}
               style={{
                 flex: 1,
                 padding: '14px 0',
@@ -645,7 +635,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
       </div>
 
       {/* Active Tab Content */}
-      <div style={{ animation: 'dsFadeIn .2s ease-out' }} key={`${activeTab}-${refreshKey}`}>
+      <div style={{ animation: 'dsFadeIn .2s ease-out' }} key={activeTab}>
         <ActiveContent />
       </div>
     </div>
