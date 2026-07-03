@@ -80,44 +80,50 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ agentId, message: tabPrompts[tab] }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        const raw = data.response || '';
-        const jsonMatch = raw.match(/\[[\s\S]*\]/) || raw.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            const parsed = JSON.parse(jsonMatch[0]);
-            let patch: Record<string, any> | null = null;
-            if (tab === 'story' && parsed.action) patch = { persona: parsed.persona || story.persona, action: parsed.action, benefit: parsed.benefit || story.benefit, complexity: parsed.complexity || story.complexity };
-            else if (tab === 'requirements' && Array.isArray(parsed)) patch = { requirements: parsed };
-            else if (tab === 'acceptance' && Array.isArray(parsed)) patch = { acceptanceCriteria: parsed };
-            else if (tab === 'gherkin' && Array.isArray(parsed)) patch = { gherkinScenarios: parsed };
-            else if (tab === 'techreview' && parsed.notes) patch = { techReview: parsed };
-            else if (tab === 'planning' && parsed.subtasks) patch = { planning: parsed };
+      if (!res.ok) { setAiLoading((p) => ({ ...p, [tab]: false })); return; }
+      const data = await res.json();
+      const raw = data.response || '';
 
-            if (patch) {
-              // Save to DB
-              const patchRes = await fetch(apiUrl, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(patch),
-              });
-              if (patchRes.ok) {
-                // Refetch full story to get clean data with all fields
-                const freshRes = await fetch(`/api/projects/${project.id}/features/${story.featureId}/stories/${story.id}`);
-                if (freshRes.ok) {
-                  const freshStory = await freshRes.json();
-                  setStory((prev: any) => ({ ...freshStory, feature: freshStory.feature || prev.feature }));
-                  setRefreshKey((k) => k + 1);
-                }
-                setAiDone((p) => ({ ...p, [tab]: true }));
-                setTimeout(() => setAiDone((p) => ({ ...p, [tab]: false })), 3000);
-              }
-            }
-          } catch { /* JSON parse error */ }
+      // Try to extract JSON — handle markdown code fences too
+      let jsonStr = '';
+      const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fenced) {
+        jsonStr = fenced[1].trim();
+      } else {
+        const arrMatch = raw.match(/\[[\s\S]*\]/);
+        const objMatch = raw.match(/\{[\s\S]*\}/);
+        jsonStr = (arrMatch || objMatch)?.[0] || '';
+      }
+
+      if (jsonStr) {
+        const parsed = JSON.parse(jsonStr);
+        let patch: Record<string, any> | null = null;
+
+        if (tab === 'story' && parsed.action) patch = { persona: parsed.persona || story.persona, action: parsed.action, benefit: parsed.benefit || story.benefit, complexity: parsed.complexity || story.complexity };
+        else if (tab === 'requirements' && Array.isArray(parsed)) patch = { requirements: parsed };
+        else if (tab === 'acceptance' && Array.isArray(parsed)) patch = { acceptanceCriteria: parsed };
+        else if (tab === 'gherkin' && Array.isArray(parsed)) patch = { gherkinScenarios: parsed };
+        else if (tab === 'techreview') patch = { techReview: parsed };
+        else if (tab === 'planning') patch = { planning: parsed };
+
+        if (patch) {
+          // 1. Update local state immediately so UI reflects data
+          setStory((prev: any) => ({ ...prev, ...patch }));
+          // 2. Force tab re-mount so useState hooks re-initialize
+          setRefreshKey((k) => k + 1);
+          // 3. Persist to database in background
+          fetch(apiUrl, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch),
+          });
+          setAiDone((p) => ({ ...p, [tab]: true }));
+          setTimeout(() => setAiDone((p) => ({ ...p, [tab]: false })), 3000);
         }
       }
-    } catch { /* network error */ }
+    } catch (err) {
+      console.error('[AI Assist] Error:', err);
+    }
     setAiLoading((p) => ({ ...p, [tab]: false }));
   };
 
