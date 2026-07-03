@@ -587,7 +587,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
       </div>
 
       {/* Active Tab Content */}
-      <div style={{ animation: 'dsFadeIn .2s ease-out' }} key={activeTab}>
+      <div style={{ animation: 'dsFadeIn .2s ease-out' }} key={`${activeTab}-${story.updatedAt}`}>
         <ActiveContent />
       </div>
     </div>
