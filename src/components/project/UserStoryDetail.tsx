@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { useRouter } from 'next/navigation';
 
 interface Requirement { type: 'functional' | 'non-functional'; description: string; priority: string; }
@@ -103,15 +104,34 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
         else if (tab === 'requirements' && Array.isArray(parsed)) patch = { requirements: parsed };
         else if (tab === 'acceptance' && Array.isArray(parsed)) patch = { acceptanceCriteria: parsed };
         else if (tab === 'gherkin' && Array.isArray(parsed)) patch = { gherkinScenarios: parsed };
-        else if (tab === 'techreview') patch = { techReview: parsed };
-        else if (tab === 'planning') patch = { planning: parsed };
+        else if (tab === 'techreview') {
+          // Normalize field names — AI may use different casing
+          patch = { techReview: {
+            notes: parsed.notes || parsed.technical_review_notes || parsed.review_notes || parsed.technicalNotes || '',
+            impactAnalysis: parsed.impactAnalysis || parsed.impact_analysis || parsed.impact || '',
+            risks: Array.isArray(parsed.risks) ? parsed.risks : [],
+            architectureNotes: parsed.architectureNotes || parsed.architecture_notes || parsed.architecture || '',
+          }};
+        }
+        else if (tab === 'planning') {
+          // Normalize planning fields
+          patch = { planning: {
+            subtasks: Array.isArray(parsed.subtasks) ? parsed.subtasks : (Array.isArray(parsed.tasks) ? parsed.tasks : []),
+            totalEstimate: parsed.totalEstimate || parsed.total_estimate || '',
+            notes: parsed.notes || parsed.planning_notes || '',
+          }};
+        }
+
+        console.log(`[AI Assist] Tab: ${tab}, Patch:`, JSON.stringify(patch).substring(0, 200));
 
         if (patch) {
-          // 1. Update local state immediately so UI reflects data
-          setStory((prev: any) => ({ ...prev, ...patch }));
-          // 2. Force tab re-mount so useState hooks re-initialize
+          // Force synchronous state update so the tab re-mount reads new data
+          flushSync(() => {
+            setStory((prev: any) => ({ ...prev, ...patch }));
+          });
+          // Now force tab re-mount — story state is guaranteed to be committed
           setRefreshKey((k) => k + 1);
-          // 3. Persist to database in background
+          // Persist to database in background
           fetch(apiUrl, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
