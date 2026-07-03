@@ -84,6 +84,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
       if (!res.ok) { setAiLoading((p) => ({ ...p, [tab]: false })); return; }
       const data = await res.json();
       const raw = data.response || '';
+      console.log('[AI Assist] Raw response:', raw.substring(0, 300));
 
       // Try to extract JSON — handle markdown code fences too
       let jsonStr = '';
@@ -95,9 +96,11 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
         const objMatch = raw.match(/\{[\s\S]*\}/);
         jsonStr = (arrMatch || objMatch)?.[0] || '';
       }
+      console.log('[AI Assist] Extracted JSON:', jsonStr.substring(0, 300));
 
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);
+        console.log('[AI Assist] Parsed keys:', Object.keys(parsed));
         let patch: Record<string, any> | null = null;
 
         if (tab === 'story' && parsed.action) patch = { persona: parsed.persona || story.persona, action: parsed.action, benefit: parsed.benefit || story.benefit, complexity: parsed.complexity || story.complexity };
@@ -105,7 +108,6 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
         else if (tab === 'acceptance' && Array.isArray(parsed)) patch = { acceptanceCriteria: parsed };
         else if (tab === 'gherkin' && Array.isArray(parsed)) patch = { gherkinScenarios: parsed };
         else if (tab === 'techreview') {
-          // Normalize field names — AI may use different casing
           patch = { techReview: {
             notes: parsed.notes || parsed.technical_review_notes || parsed.review_notes || parsed.technicalNotes || '',
             impactAnalysis: parsed.impactAnalysis || parsed.impact_analysis || parsed.impact || '',
@@ -114,7 +116,6 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
           }};
         }
         else if (tab === 'planning') {
-          // Normalize planning fields
           patch = { planning: {
             subtasks: Array.isArray(parsed.subtasks) ? parsed.subtasks : (Array.isArray(parsed.tasks) ? parsed.tasks : []),
             totalEstimate: parsed.totalEstimate || parsed.total_estimate || '',
@@ -122,23 +123,33 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
           }};
         }
 
-        console.log(`[AI Assist] Tab: ${tab}, Patch:`, JSON.stringify(patch).substring(0, 200));
+        console.log('[AI Assist] Patch:', JSON.stringify(patch).substring(0, 500));
 
         if (patch) {
-          // Force synchronous state update so the tab re-mount reads new data
-          flushSync(() => {
-            setStory((prev: any) => ({ ...prev, ...patch }));
-          });
-          // Now force tab re-mount — story state is guaranteed to be committed
-          setRefreshKey((k) => k + 1);
-          // Persist to database in background
-          fetch(apiUrl, {
+          // 1. Save to DB and wait for it
+          const patchRes = await fetch(apiUrl, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(patch),
           });
-          setAiDone((p) => ({ ...p, [tab]: true }));
-          setTimeout(() => setAiDone((p) => ({ ...p, [tab]: false })), 3000);
+          console.log('[AI Assist] PATCH status:', patchRes.status);
+
+          if (patchRes.ok) {
+            // 2. Fetch fresh story from DB
+            const freshRes = await fetch(apiUrl);
+            if (freshRes.ok) {
+              const freshStory = await freshRes.json();
+              console.log('[AI Assist] Fresh story techReview:', JSON.stringify(freshStory.techReview)?.substring(0, 200));
+              console.log('[AI Assist] Fresh story planning:', JSON.stringify(freshStory.planning)?.substring(0, 200));
+              // 3. Replace story state entirely with fresh DB data
+              flushSync(() => {
+                setStory((prev: any) => ({ ...freshStory, feature: freshStory.feature || prev.feature }));
+                setRefreshKey((k) => k + 1);
+              });
+            }
+            setAiDone((p) => ({ ...p, [tab]: true }));
+            setTimeout(() => setAiDone((p) => ({ ...p, [tab]: false })), 3000);
+          }
         }
       }
     } catch (err) {
@@ -420,6 +431,8 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
   // --- TAB 5: TECH REVIEW ---
   const TechReviewTab = () => {
     const existing = (story.techReview || {}) as Partial<TechReviewData>;
+    console.log('[TechReviewTab] Mount — story.techReview:', JSON.stringify(story.techReview)?.substring(0, 300));
+    console.log('[TechReviewTab] existing.notes:', existing.notes);
     const [notes, setNotes] = useState(existing.notes || '');
     const [impact, setImpact] = useState(existing.impactAnalysis || '');
     const [risks, setRisks] = useState<string[]>(existing.risks || []);
