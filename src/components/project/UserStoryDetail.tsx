@@ -31,6 +31,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
   const [saved, setSaved] = useState(false);
 
   const apiUrl = `/api/projects/${project.id}/features/${story.featureId}/stories/${story.id}`;
+  const agents: { id: string; name: string; agentType: string }[] = project.agents || [];
 
   const save = useCallback(async (patch: Record<string, any>) => {
     setSaving(true);
@@ -50,6 +51,113 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
     } catch { /* */ }
     setSaving(false);
   }, [apiUrl]);
+
+  // --- AI ASSIST ---
+  const [aiAgent, setAiAgent] = useState<Record<string, string>>({});
+  const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
+  const [aiResponse, setAiResponse] = useState<Record<string, string>>({});
+  const [aiTokens, setAiTokens] = useState<Record<string, number>>({});
+
+  const storyContext = `User Story: As a ${story.persona}, I want to ${story.action} so that ${story.benefit}.\nComplexity: ${story.complexity}\nStatus: ${story.status}\nFeature: ${story.feature?.title || 'N/A'}`;
+
+  const tabPrompts: Record<TabKey, string> = {
+    story: `Refine and improve this user story. Suggest a better formulation if needed. Make it specific, measurable, and actionable.\n\n${storyContext}`,
+    requirements: `Generate a comprehensive list of functional and non-functional requirements for this user story. Format each as a JSON array: [{"type": "functional"|"non-functional", "description": "...", "priority": "must"|"should"|"could"|"wont"}]\n\n${storyContext}\n\nExisting requirements: ${JSON.stringify(story.requirements || [])}`,
+    acceptance: `Generate acceptance criteria for this user story. Return as a JSON array of strings, each being a clear, testable criterion.\n\n${storyContext}\n\nExisting criteria: ${JSON.stringify(story.acceptanceCriteria || [])}`,
+    gherkin: `Generate Gherkin (BDD) test scenarios for this user story. Return as a JSON array: [{"title": "...", "given": "...", "when": "...", "then": "...", "status": "draft"}]\n\n${storyContext}\n\nExisting scenarios: ${JSON.stringify(story.gherkinScenarios || [])}`,
+    techreview: `Perform a technical review of this user story. Provide: implementation notes, impact analysis (which layers/files affected), risks, and architecture notes.\n\n${storyContext}\n\nReturn as JSON: {"notes": "...", "impactAnalysis": "...", "risks": ["..."], "architectureNotes": "..."}`,
+    planning: `Create an implementation plan with subtasks for this user story. Break it into database, backend, frontend, and testing tasks.\n\n${storyContext}\n\nReturn as JSON: {"subtasks": [{"title": "...", "layer": "database|backend|frontend|testing", "assignee": "", "estimate": "2h", "status": "todo"}], "totalEstimate": "...", "notes": "..."}`,
+  };
+
+  const runAiAssist = async (tab: TabKey) => {
+    const agentId = aiAgent[tab];
+    if (!agentId || aiLoading[tab]) return;
+    setAiLoading((p) => ({ ...p, [tab]: true }));
+    setAiResponse((p) => ({ ...p, [tab]: '' }));
+    try {
+      const res = await fetch(`/api/projects/${project.id}/agents/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId, message: tabPrompts[tab] }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAiResponse((p) => ({ ...p, [tab]: data.response }));
+        setAiTokens((p) => ({ ...p, [tab]: data.tokensUsed?.total || 0 }));
+      } else {
+        const err = await res.json();
+        setAiResponse((p) => ({ ...p, [tab]: `Error: ${err.error}` }));
+      }
+    } catch {
+      setAiResponse((p) => ({ ...p, [tab]: 'Network error' }));
+    }
+    setAiLoading((p) => ({ ...p, [tab]: false }));
+  };
+
+  const applyAiResponse = (tab: TabKey) => {
+    const raw = aiResponse[tab];
+    if (!raw) return;
+    try {
+      // Try to extract JSON from the response
+      const jsonMatch = raw.match(/\[[\s\S]*\]/) || raw.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return;
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (tab === 'requirements' && Array.isArray(parsed)) save({ requirements: parsed });
+      else if (tab === 'acceptance' && Array.isArray(parsed)) save({ acceptanceCriteria: parsed });
+      else if (tab === 'gherkin' && Array.isArray(parsed)) save({ gherkinScenarios: parsed });
+      else if (tab === 'techreview' && parsed.notes) save({ techReview: parsed });
+      else if (tab === 'planning' && parsed.subtasks) save({ planning: parsed });
+    } catch { /* couldn't parse — user can copy manually */ }
+  };
+
+  const AiAssistPanel = ({ tab }: { tab: TabKey }) => (
+    <div style={{ marginTop: '16px', borderTop: '1px solid #1F1F1F', paddingTop: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+        <span style={{ fontSize: '10px', letterSpacing: '.14em', color: '#FF2A2A', fontWeight: 700 }}>AI ASSIST</span>
+        {aiTokens[tab] > 0 && <span style={{ fontSize: '9px', color: '#3A3A3A' }}>· {aiTokens[tab]} tokens</span>}
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <select
+          className="ds-input"
+          style={{ width: '240px' }}
+          value={aiAgent[tab] || ''}
+          onChange={(e) => setAiAgent((p) => ({ ...p, [tab]: e.target.value }))}
+        >
+          <option value="">Select agent...</option>
+          {agents.map((a) => (
+            <option key={a.id} value={a.id}>{a.name}</option>
+          ))}
+        </select>
+        <button
+          className="ds-btn-primary ds-btn-sm"
+          onClick={() => runAiAssist(tab)}
+          disabled={!aiAgent[tab] || aiLoading[tab]}
+          style={{ letterSpacing: '.1em', whiteSpace: 'nowrap' }}
+        >
+          {aiLoading[tab] ? '[ GENERATING... ]' : '[ GENERATE WITH AI ]'}
+        </button>
+        {aiResponse[tab] && tab !== 'story' && (
+          <button
+            className="ds-btn-ghost ds-btn-sm"
+            onClick={() => applyAiResponse(tab)}
+            style={{ letterSpacing: '.1em', whiteSpace: 'nowrap' }}
+          >
+            [ APPLY ]
+          </button>
+        )}
+      </div>
+      {aiResponse[tab] && (
+        <div style={{
+          marginTop: '10px', background: '#0A0A0A', border: '1px solid #1A1A1A', padding: '14px',
+          fontSize: '11px', color: '#B3B3B3', lineHeight: 1.7, whiteSpace: 'pre-wrap',
+          fontFamily: '"JetBrains Mono", monospace', maxHeight: '350px', overflowY: 'auto',
+          animation: 'dsFadeIn .2s ease-out',
+        }}>
+          {aiResponse[tab]}
+        </div>
+      )}
+    </div>
+  );
 
   // --- TAB 1: USER STORY ---
   const StoryTab = () => {
@@ -101,6 +209,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
               [ SAVE STORY ]
             </button>
           </div>
+          <AiAssistPanel tab="story" />
         </div>
       </div>
     );
@@ -166,6 +275,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
           </div>
         )}
         {reqs.length === 0 && <div style={{ textAlign: 'center', color: '#3A3A3A', padding: '40px', fontSize: '12px' }}>No requirements defined yet</div>}
+        <AiAssistPanel tab="requirements" />
       </div>
     );
   };
@@ -210,6 +320,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
           </div>
         )}
         {criteria.length === 0 && <div style={{ textAlign: 'center', color: '#3A3A3A', padding: '40px', fontSize: '12px' }}>No acceptance criteria defined yet</div>}
+        <AiAssistPanel tab="acceptance" />
       </div>
     );
   };
@@ -281,6 +392,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
           </div>
         ))}
         {scenarios.length === 0 && !showForm && <div style={{ textAlign: 'center', color: '#3A3A3A', padding: '40px', fontSize: '12px' }}>No Gherkin scenarios defined yet</div>}
+        <AiAssistPanel tab="gherkin" />
       </div>
     );
   };
@@ -333,6 +445,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
           <textarea className="ds-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', fontFamily: '"JetBrains Mono", monospace', fontSize: '11px' }} value={archNotes} onChange={(e) => setArchNotes(e.target.value)} placeholder="Patterns to follow, dependencies, integration points..." />
         </div>
         <button className="ds-btn-primary ds-btn-sm" style={{ alignSelf: 'flex-start' }} onClick={saveTechReview}>[ SAVE TECH REVIEW ]</button>
+        <AiAssistPanel tab="techreview" />
       </div>
     );
   };
@@ -420,6 +533,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
           </div>
         </div>
         <button className="ds-btn-primary ds-btn-sm" style={{ alignSelf: 'flex-start' }} onClick={savePlanning}>[ SAVE PLANNING ]</button>
+        <AiAssistPanel tab="planning" />
       </div>
     );
   };

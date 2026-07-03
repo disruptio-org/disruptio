@@ -18,7 +18,11 @@ export default async function UserStoryPage({ params }: { params: Promise<{ proj
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { id: true, name: true, personas: { select: { name: true, role: true } } },
+    select: {
+      id: true, name: true,
+      personas: { select: { name: true, role: true } },
+      agents: { where: { enabled: true }, select: { id: true, name: true, agentType: true } },
+    },
   });
 
   if (!project) notFound();
