@@ -29,6 +29,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
   const [activeTab, setActiveTab] = useState<TabKey>('story');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const apiUrl = `/api/projects/${project.id}/features/${story.featureId}/stories/${story.id}`;
   const agents: { id: string; name: string; agentType: string }[] = project.agents || [];
@@ -82,19 +83,37 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
       if (res.ok) {
         const data = await res.json();
         const raw = data.response || '';
-        // Extract JSON and directly apply to fields
         const jsonMatch = raw.match(/\[[\s\S]*\]/) || raw.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           try {
             const parsed = JSON.parse(jsonMatch[0]);
-            if (tab === 'story' && parsed.action) await save({ persona: parsed.persona || story.persona, action: parsed.action, benefit: parsed.benefit || story.benefit, complexity: parsed.complexity || story.complexity });
-            else if (tab === 'requirements' && Array.isArray(parsed)) await save({ requirements: parsed });
-            else if (tab === 'acceptance' && Array.isArray(parsed)) await save({ acceptanceCriteria: parsed });
-            else if (tab === 'gherkin' && Array.isArray(parsed)) await save({ gherkinScenarios: parsed });
-            else if (tab === 'techreview' && parsed.notes) await save({ techReview: parsed });
-            else if (tab === 'planning' && parsed.subtasks) await save({ planning: parsed });
-            setAiDone((p) => ({ ...p, [tab]: true }));
-            setTimeout(() => setAiDone((p) => ({ ...p, [tab]: false })), 3000);
+            let patch: Record<string, any> | null = null;
+            if (tab === 'story' && parsed.action) patch = { persona: parsed.persona || story.persona, action: parsed.action, benefit: parsed.benefit || story.benefit, complexity: parsed.complexity || story.complexity };
+            else if (tab === 'requirements' && Array.isArray(parsed)) patch = { requirements: parsed };
+            else if (tab === 'acceptance' && Array.isArray(parsed)) patch = { acceptanceCriteria: parsed };
+            else if (tab === 'gherkin' && Array.isArray(parsed)) patch = { gherkinScenarios: parsed };
+            else if (tab === 'techreview' && parsed.notes) patch = { techReview: parsed };
+            else if (tab === 'planning' && parsed.subtasks) patch = { planning: parsed };
+
+            if (patch) {
+              // Save to DB
+              const patchRes = await fetch(apiUrl, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(patch),
+              });
+              if (patchRes.ok) {
+                // Refetch full story to get clean data with all fields
+                const freshRes = await fetch(`/api/projects/${project.id}/features/${story.featureId}/stories/${story.id}`);
+                if (freshRes.ok) {
+                  const freshStory = await freshRes.json();
+                  setStory((prev: any) => ({ ...freshStory, feature: freshStory.feature || prev.feature }));
+                  setRefreshKey((k) => k + 1);
+                }
+                setAiDone((p) => ({ ...p, [tab]: true }));
+                setTimeout(() => setAiDone((p) => ({ ...p, [tab]: false })), 3000);
+              }
+            }
           } catch { /* JSON parse error */ }
         }
       }
@@ -587,7 +606,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
       </div>
 
       {/* Active Tab Content */}
-      <div style={{ animation: 'dsFadeIn .2s ease-out' }} key={`${activeTab}-${story.updatedAt}`}>
+      <div style={{ animation: 'dsFadeIn .2s ease-out' }} key={`${activeTab}-${refreshKey}`}>
         <ActiveContent />
       </div>
     </div>
