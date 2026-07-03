@@ -44,7 +44,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
       });
       if (res.ok) {
         const updated = await res.json();
-        setStory(updated);
+        setStory((prev: any) => ({ ...updated, feature: updated.feature || prev.feature }));
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
       }
