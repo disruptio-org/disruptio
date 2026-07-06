@@ -133,9 +133,15 @@ ${storyContext}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ agentId, message: tabPrompts[tab] }),
       });
-      if (!res.ok) { setAiLoading((p) => ({ ...p, [tab]: false })); return; }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.error('[AI Assist] API error:', res.status, errData);
+        setAiLoading((p) => ({ ...p, [tab]: false }));
+        return;
+      }
       const data = await res.json();
       const raw = data.response || '';
+      console.log('[AI Assist] Raw response length:', raw.length);
 
       // Try to extract JSON — handle markdown code fences too
       let jsonStr = '';
@@ -174,10 +180,9 @@ ${storyContext}`,
           }};
         }
 
-
-
         if (patch) {
-          // Save to DB and wait for it
+          console.log('[AI Assist] Saving patch:', Object.keys(patch));
+          // Save to DB
           const patchRes = await fetch(apiUrl, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -185,12 +190,20 @@ ${storyContext}`,
           });
 
           if (patchRes.ok) {
-            // Set hash so reload returns to same tab, then reload
-            window.location.hash = tab;
-            window.location.reload();
-            return;
+            const updatedStory = await patchRes.json();
+            // Update local state directly so all tabs pick up the new data
+            setStory((prev: any) => ({ ...prev, ...updatedStory }));
+            setAiDone((p) => ({ ...p, [tab]: true }));
+            console.log('[AI Assist] Saved successfully');
+          } else {
+            const errData = await patchRes.json().catch(() => ({}));
+            console.error('[AI Assist] Save failed:', patchRes.status, errData);
           }
+        } else {
+          console.warn('[AI Assist] No patch built from parsed JSON. Keys:', Object.keys(parsed));
         }
+      } else {
+        console.warn('[AI Assist] No JSON found in response. Raw:', raw.substring(0, 200));
       }
     } catch (err) {
       console.error('[AI Assist] Error:', err);
@@ -476,6 +489,15 @@ ${storyContext}`,
     const [risks, setRisks] = useState<string[]>(existing.risks || []);
     const [archNotes, setArchNotes] = useState(existing.architectureNotes || '');
     const [newRisk, setNewRisk] = useState('');
+
+    // Sync form fields when AI generates new tech review data
+    useEffect(() => {
+      const tr = (story.techReview || {}) as Partial<TechReviewData>;
+      if (tr.notes !== undefined) setNotes(tr.notes || '');
+      if (tr.impactAnalysis !== undefined) setImpact(tr.impactAnalysis || '');
+      if (tr.risks !== undefined) setRisks(tr.risks || []);
+      if (tr.architectureNotes !== undefined) setArchNotes(tr.architectureNotes || '');
+    }, [story.techReview]);
 
     const addRisk = () => {
       if (!newRisk.trim()) return;
@@ -1061,6 +1083,14 @@ ${storyContext}`,
     const [conflicts, setConflicts] = useState<PlanningData['conflicts']>(existing.conflicts || []);
     const [checkingConflicts, setCheckingConflicts] = useState(false);
     const [newTask, setNewTask] = useState<SubTask>({ title: '', layer: 'backend', assignee: '', estimate: '', status: 'todo' });
+
+    // Sync form fields when AI generates new planning data
+    useEffect(() => {
+      const pl = (story.planning || {}) as Partial<PlanningData>;
+      if (pl.subtasks !== undefined) setSubtasks(pl.subtasks || []);
+      if (pl.totalEstimate !== undefined) setTotalEstimate(pl.totalEstimate || '');
+      if (pl.notes !== undefined) setNotes(pl.notes || '');
+    }, [story.planning]);
 
     const addTask = () => {
       if (!newTask.title.trim()) return;
