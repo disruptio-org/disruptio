@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function PersonasContent({ project }: { project: any }) {
@@ -9,6 +9,11 @@ export default function PersonasContent({ project }: { project: any }) {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', role: '', description: '', goals: '', painPoints: '', technicalLevel: '', workflows: '', needs: '', risks: '' });
   const [saving, setSaving] = useState(false);
+
+  // Import state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ count: number; error?: string } | null>(null);
 
   const fields = [
     { key: 'name', label: 'PERSONA NAME', required: true, rows: 0 },
@@ -48,6 +53,39 @@ export default function PersonasContent({ project }: { project: any }) {
     router.refresh();
   };
 
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    setImportResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch(`/api/projects/${project.id}/personas/import`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setImportResult({ count: 0, error: data.error || 'Import failed' });
+      } else {
+        setImportResult({ count: data.imported });
+        router.refresh();
+      }
+    } catch (err: any) {
+      setImportResult({ count: 0, error: err.message || 'Network error' });
+    }
+
+    setImporting(false);
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   return (
     <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '22px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -55,8 +93,46 @@ export default function PersonasContent({ project }: { project: any }) {
           <div className="ds-section-title">PERSONAS</div>
           <div style={{ marginTop: '8px', fontSize: '12px', color: '#6A6A6A' }}>{project.personas.length} persona{project.personas.length !== 1 ? 's' : ''} defined</div>
         </div>
-        <button className="ds-btn-primary ds-btn-sm" onClick={() => { setShowForm(true); setEditId(null); setForm({ name: '', role: '', description: '', goals: '', painPoints: '', technicalLevel: '', workflows: '', needs: '', risks: '' }); }}>+ ADD PERSONA</button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".docx,.doc"
+            onChange={handleImport}
+            style={{ display: 'none' }}
+          />
+          <button
+            className="ds-btn-ghost ds-btn-sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            {importing ? '[ IMPORTING... ]' : '[ IMPORT FILE ]'}
+          </button>
+          <button className="ds-btn-primary ds-btn-sm" onClick={() => { setShowForm(true); setEditId(null); setForm({ name: '', role: '', description: '', goals: '', painPoints: '', technicalLevel: '', workflows: '', needs: '', risks: '' }); }}>+ ADD PERSONA</button>
+        </div>
       </div>
+
+      {/* Import status */}
+      {importing && (
+        <div style={{ padding: '12px 16px', background: '#0D0D0D', border: '1px solid #2A2A2A', fontSize: '11px', color: '#F39C12', letterSpacing: '.1em' }}>
+          ● Parsing document and extracting personas with AI... This may take a moment.
+        </div>
+      )}
+      {importResult && (
+        <div style={{
+          padding: '12px 16px', background: '#0D0D0D',
+          border: `1px solid ${importResult.error ? '#FF2A2A' : '#2ECC71'}`,
+          fontSize: '11px', letterSpacing: '.1em',
+          color: importResult.error ? '#FF2A2A' : '#2ECC71',
+        }}>
+          {importResult.error
+            ? `✕ ${importResult.error}`
+            : `✓ Successfully imported ${importResult.count} persona${importResult.count !== 1 ? 's' : ''} from document`
+          }
+        </div>
+      )}
 
       {showForm && (
         <div style={{ border: '1px solid #FF2A2A', background: '#0D0D0D', padding: '24px' }}>
