@@ -38,9 +38,14 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // GitHub Issue state
+  // GitHub Issue state — initialize from persisted data
   const [creatingIssue, setCreatingIssue] = useState(false);
-  const [issueResult, setIssueResult] = useState<{ url?: string; number?: number; error?: string } | null>(null);
+  const [issueResult, setIssueResult] = useState<{ url?: string; number?: number; state?: string; error?: string } | null>(() => {
+    if (initialStory.githubIssueUrl && initialStory.githubIssueNumber) {
+      return { url: initialStory.githubIssueUrl, number: initialStory.githubIssueNumber, state: initialStory.githubIssueState || 'open' };
+    }
+    return null;
+  });
 
   const apiUrl = `/api/projects/${project.id}/features/${story.featureId}/stories/${story.id}`;
   const agents: { id: string; name: string; agentType: string }[] = project.agents || [];
@@ -731,39 +736,78 @@ ${storyContext}`,
                 href={issueResult.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ fontSize: '10px', color: '#2ECC71', letterSpacing: '.1em', textDecoration: 'none', border: '1px solid #2ECC7144', padding: '4px 12px' }}
+                style={{
+                  fontSize: '10px', letterSpacing: '.1em', textDecoration: 'none',
+                  padding: '4px 12px', display: 'flex', alignItems: 'center', gap: '6px',
+                  border: `1px solid ${issueResult.state === 'closed' ? '#5A5A5A44' : '#2ECC7144'}`,
+                  color: issueResult.state === 'closed' ? '#5A5A5A' : '#2ECC71',
+                }}
               >
-                ✓ ISSUE #{issueResult.number}
+                <span style={{
+                  display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
+                  background: issueResult.state === 'closed' ? '#8E44AD' : '#2ECC71',
+                }} />
+                ISSUE #{issueResult.number} · {(issueResult.state || 'open').toUpperCase()}
               </a>
             )}
-            <button
-              className="ds-btn-primary ds-btn-sm"
-              disabled={creatingIssue}
-              onClick={async () => {
-                setCreatingIssue(true);
-                setIssueResult(null);
-                try {
-                  const res = await fetch(`/api/projects/${project.id}/github-issue`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ storyId: story.id }),
-                  });
-                  const data = await res.json();
-                  if (res.ok) {
-                    setIssueResult({ url: data.issueUrl, number: data.issueNumber });
-                    setStory((prev: any) => ({ ...prev, status: 'ready' }));
-                  } else {
-                    setIssueResult({ error: data.error || 'Failed to create issue' });
+            {issueResult?.url ? (
+              <button
+                className="ds-btn-primary ds-btn-sm"
+                disabled={creatingIssue}
+                onClick={async () => {
+                  setCreatingIssue(true);
+                  try {
+                    const res = await fetch(`/api/projects/${project.id}/github-issue`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ storyId: story.id }),
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      setIssueResult({ url: data.issueUrl, number: data.issueNumber, state: 'open' });
+                      setStory((prev: any) => ({ ...prev, status: 'ready', githubIssueUrl: data.issueUrl, githubIssueNumber: data.issueNumber, githubIssueState: 'open' }));
+                    } else {
+                      setIssueResult(prev => ({ ...prev, error: data.error || 'Failed to update issue' }));
+                    }
+                  } catch (err: any) {
+                    setIssueResult(prev => ({ ...prev, error: err.message || 'Network error' }));
                   }
-                } catch (err: any) {
-                  setIssueResult({ error: err.message || 'Network error' });
-                }
-                setCreatingIssue(false);
-              }}
-              style={{ letterSpacing: '.1em', whiteSpace: 'nowrap' }}
-            >
-              {creatingIssue ? '[ CREATING... ]' : '[ CREATE GITHUB ISSUE ]'}
-            </button>
+                  setCreatingIssue(false);
+                }}
+                style={{ letterSpacing: '.1em', whiteSpace: 'nowrap' }}
+              >
+                {creatingIssue ? '[ UPDATING... ]' : '[ UPDATE GITHUB ISSUE ]'}
+              </button>
+            ) : (
+              <button
+                className="ds-btn-primary ds-btn-sm"
+                disabled={creatingIssue}
+                onClick={async () => {
+                  setCreatingIssue(true);
+                  setIssueResult(null);
+                  try {
+                    const res = await fetch(`/api/projects/${project.id}/github-issue`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ storyId: story.id }),
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      setIssueResult({ url: data.issueUrl, number: data.issueNumber, state: 'open' });
+                      setStory((prev: any) => ({ ...prev, status: 'ready', githubIssueUrl: data.issueUrl, githubIssueNumber: data.issueNumber, githubIssueState: 'open' }));
+                    } else {
+                      setIssueResult({ error: data.error || 'Failed to create issue' });
+                    }
+                  } catch (err: any) {
+                    setIssueResult({ error: err.message || 'Network error' });
+                  }
+                  setCreatingIssue(false);
+                }}
+                style={{ letterSpacing: '.1em', whiteSpace: 'nowrap' }}
+              >
+                {creatingIssue ? '[ CREATING... ]' : '[ CREATE GITHUB ISSUE ]'}
+              </button>
+            )}
           </div>
         </div>
         {/* Save indicator */}

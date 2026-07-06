@@ -292,6 +292,9 @@ model UserStory {
   complexity         String   @default("medium")
   status             String   @default("draft")
   order              Int      @default(0)
+  githubIssueUrl     String?
+  githubIssueNumber  Int?
+  githubIssueState   String?  // open, closed
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

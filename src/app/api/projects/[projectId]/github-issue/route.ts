@@ -51,10 +51,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
       labels,
     });
 
-    // Update story status to "ready"
+    // Update story with GitHub issue link and status
     await prisma.userStory.update({
       where: { id: storyId },
-      data: { status: 'ready' },
+      data: {
+        status: 'ready',
+        githubIssueUrl: issue.data.html_url,
+        githubIssueNumber: issue.data.number,
+        githubIssueState: issue.data.state, // 'open'
+      },
     });
 
     return NextResponse.json({
