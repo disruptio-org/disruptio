@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 export default function GitHubContent({ project }: { project: any }) {
   const router = useRouter();
   const conn = project.githubConnection;
+  const agents = project.agents || [];
   const [scanning, setScanning] = useState(false);
   const [deepScanning, setDeepScanning] = useState(false);
   const [scanResult, setScanResult] = useState<any>(null);
   const [deepScanResult, setDeepScanResult] = useState<any>(null);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState(agents[0]?.id || '');
 
   const handleRescan = async () => {
     if (!conn) return;
@@ -47,6 +49,7 @@ export default function GitHubContent({ project }: { project: any }) {
       const res = await fetch(`/api/projects/${project.id}/deep-scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId: selectedAgent || null }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -128,17 +131,50 @@ export default function GitHubContent({ project }: { project: any }) {
               </div>
             )}
           </div>
+
+          {/* Agent selector + Deep scan controls */}
+          <div className="ds-card" style={{ borderColor: '#FF2A2A33' }}>
+            <div className="ds-label" style={{ marginBottom: '14px', color: '#FF2A2A' }}>DEEP SCAN — ARCHITECT MODE</div>
+            <div style={{ fontSize: '11px', color: '#6A6A6A', lineHeight: 1.6, marginBottom: '16px' }}>
+              Reads every file in the repository and builds a complete architectural understanding.
+              Select an agent to produce an AI-powered file-by-file analysis.
+            </div>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              {agents.length > 0 && (
+                <select
+                  value={selectedAgent}
+                  onChange={(e) => setSelectedAgent(e.target.value)}
+                  style={{
+                    background: '#0D0D0D', border: '1px solid #2A2A2A', color: '#B3B3B3',
+                    padding: '8px 12px', fontSize: '11px', fontFamily: '"JetBrains Mono", monospace',
+                    minWidth: '220px',
+                  }}
+                >
+                  <option value="">No agent (structural scan only)</option>
+                  {agents.map((a: any) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              )}
+              <button
+                className="ds-btn-primary ds-btn-sm"
+                onClick={handleDeepScan}
+                disabled={deepScanning}
+                style={{ letterSpacing: '.1em', whiteSpace: 'nowrap' }}
+              >
+                {deepScanning ? '[ SCANNING... ]' : '[ RUN DEEP SCAN ]'}
+              </button>
+            </div>
+            {deepScanning && (
+              <div style={{ marginTop: '12px', fontSize: '10px', color: '#F39C12', letterSpacing: '.1em' }}>
+                ● Reading all repository files and running agent analysis... This may take 30-60 seconds.
+              </div>
+            )}
+          </div>
+
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button className="ds-btn-ghost ds-btn-sm" onClick={handleRescan} disabled={scanning}>
               {scanning ? '[ SCANNING... ]' : 'RESCAN REPOSITORY'}
-            </button>
-            <button
-              className="ds-btn-primary ds-btn-sm"
-              onClick={handleDeepScan}
-              disabled={deepScanning}
-              style={{ letterSpacing: '.1em' }}
-            >
-              {deepScanning ? '[ DEEP SCANNING... ]' : '[ DEEP SCAN — ARCHITECT MODE ]'}
             </button>
             <button className="ds-btn-ghost ds-btn-sm" onClick={() => router.push('/projects/connect-github')}>CHANGE REPOSITORY</button>
             <button
@@ -156,7 +192,9 @@ export default function GitHubContent({ project }: { project: any }) {
             <div className="ds-card" style={{ animation: 'dsFadeIn .3s ease-out', borderColor: '#FF2A2A33' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FF2A2A' }} />
-                <div className="ds-label" style={{ color: '#FF2A2A' }}>SOLUTION ARCHITECT — DEEP SCAN COMPLETE</div>
+                <div className="ds-label" style={{ color: '#FF2A2A' }}>
+                  {deepScanResult.agentUsed ? 'AI-POWERED DEEP SCAN COMPLETE' : 'STRUCTURAL DEEP SCAN COMPLETE'}
+                </div>
                 <span style={{ fontSize: '10px', color: '#5A5A5A', marginLeft: 'auto' }}>v{deepScanResult.scanVersion}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '16px', marginBottom: '16px' }}>
@@ -172,7 +210,24 @@ export default function GitHubContent({ project }: { project: any }) {
                   </div>
                 ))}
               </div>
-              {deepScanResult.architectureSummary && (
+
+              {/* AI Analysis (detailed) */}
+              {deepScanResult.aiAnalysis && (
+                <div style={{ background: '#0D0D0D', padding: '18px', border: '1px solid #FF2A2A33', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.12em', marginBottom: '12px', fontWeight: 700 }}>
+                    AI ARCHITECTURAL ANALYSIS
+                  </div>
+                  <pre style={{
+                    fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.7,
+                    margin: 0, fontFamily: '"JetBrains Mono", monospace',
+                    maxHeight: '600px', overflow: 'auto',
+                  }}>
+                    {deepScanResult.aiAnalysis}
+                  </pre>
+                </div>
+              )}
+
+              {deepScanResult.architectureSummary && !deepScanResult.aiAnalysis && (
                 <div style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F', marginBottom: '12px' }}>
                   <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '8px' }}>ARCHITECTURE SUMMARY</div>
                   <pre style={{ fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: 0, fontFamily: '"JetBrains Mono", monospace' }}>
@@ -189,7 +244,7 @@ export default function GitHubContent({ project }: { project: any }) {
                 </div>
               )}
               <div style={{ marginTop: '12px', fontSize: '11px', color: '#2ECC71' }}>
-                ✓ Repository knowledge stored. Solution Architect is now ready to plan implementations.
+                ✓ Repository knowledge stored. {deepScanResult.agentUsed ? 'AI analysis complete.' : 'Structural scan complete.'} Agents can now use this knowledge.
               </div>
             </div>
           )}
@@ -282,7 +337,7 @@ export default function GitHubContent({ project }: { project: any }) {
           )}
 
           {/* Repository Knowledge Status */}
-          {project.repositoryKnowledge && (
+          {project.repositoryKnowledge && !deepScanResult && (
             <div className="ds-card" style={{ borderColor: '#FF2A2A22' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ECC71' }} />
@@ -292,7 +347,7 @@ export default function GitHubContent({ project }: { project: any }) {
                 </span>
               </div>
               <div style={{ fontSize: '11px', color: '#8A8A8A', lineHeight: 1.6 }}>
-                The Solution Architect has memorized this repository. It can now plan feature implementations, identify affected files, and generate subtask breakdowns. Use the Agents page to request implementation plans.
+                The repository has been analyzed. All agents can now use this knowledge for implementation planning, architecture analysis, and code-aware recommendations.
               </div>
             </div>
           )}
