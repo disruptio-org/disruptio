@@ -246,7 +246,7 @@ Generate the complete document in markdown format. Use proper headers (##, ###),
         { role: 'user', content: userMessage },
       ],
       temperature: 0.3,
-      max_tokens: 8192,
+      max_completion_tokens: 8192,
     });
 
     const content = completion.choices[0]?.message?.content || '';
