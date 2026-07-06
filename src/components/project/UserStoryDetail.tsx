@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation';
 interface Requirement { type: 'functional' | 'non-functional'; description: string; priority: string; }
 interface GherkinScenario { title: string; given: string; when: string; then: string; status: string; }
 interface TechReviewData { notes: string; impactAnalysis: string; risks: string[]; architectureNotes: string; }
-interface SubTask { title: string; layer: string; assignee: string; estimate: string; status: string; }
-interface PlanningData { subtasks: SubTask[]; totalEstimate: string; notes: string; }
+interface SubTask { title: string; layer: string; assignee: string; estimate: string; status: string; files?: string[]; }
+interface PlanningData { subtasks: SubTask[]; totalEstimate: string; notes: string; impactedFiles?: string[]; newFiles?: string[]; conflicts?: { storyId: string; storyTitle: string; sharedFiles: string[] }[]; }
 
 const TABS = [
   { key: 'story', label: 'USER STORY', num: '01' },
@@ -73,7 +73,20 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
     acceptance: `Generate acceptance criteria for this user story. Return ONLY a JSON array of strings, no explanation: ["criterion 1", "criterion 2", ...]. Each should be clear and testable.\n\n${storyContext}`,
     gherkin: `Generate Gherkin (BDD) test scenarios for this user story. Return ONLY a JSON array, no explanation: [{"title": "...", "given": "...", "when": "...", "then": "...", "status": "draft"}]\n\n${storyContext}`,
     techreview: `Perform a technical review of this user story. Return ONLY a JSON object, no explanation: {"notes": "...", "impactAnalysis": "...", "risks": ["risk1", "risk2"], "architectureNotes": "..."}\n\n${storyContext}`,
-    planning: `Create an implementation plan with subtasks for this user story. Return ONLY a JSON object, no explanation: {"subtasks": [{"title": "...", "layer": "database|backend|frontend|testing|devops|config", "assignee": "", "estimate": "2h", "status": "todo"}], "totalEstimate": "...", "notes": "..."}\n\n${storyContext}`,
+    planning: `Create an implementation plan with subtasks for this user story. You MUST identify the specific files from the repository that will be modified or created.
+
+Return ONLY a JSON object, no explanation:
+{
+  "subtasks": [{"title": "...", "layer": "database|backend|frontend|testing|devops|config", "assignee": "", "estimate": "2h", "status": "todo", "files": ["src/path/to/file.ts"]}],
+  "impactedFiles": ["src/existing/file1.ts", "src/existing/file2.ts"],
+  "newFiles": ["src/new/file.ts"],
+  "totalEstimate": "...",
+  "notes": "..."
+}
+
+IMPORTANT: The "impactedFiles" array MUST list every existing file that will be MODIFIED. The "newFiles" array MUST list every new file that will be CREATED. Each subtask's "files" array should list the specific files that subtask touches. Reference actual file paths from the repository.
+
+${storyContext}`,
   };
 
   const runAiAssist = async (tab: TabKey) => {
@@ -123,6 +136,8 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
             subtasks: Array.isArray(parsed.subtasks) ? parsed.subtasks : (Array.isArray(parsed.tasks) ? parsed.tasks : []),
             totalEstimate: parsed.totalEstimate || parsed.total_estimate || '',
             notes: parsed.notes || parsed.planning_notes || '',
+            impactedFiles: Array.isArray(parsed.impactedFiles) ? parsed.impactedFiles : [],
+            newFiles: Array.isArray(parsed.newFiles) ? parsed.newFiles : [],
           }};
         }
 
@@ -479,6 +494,10 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
     const [subtasks, setSubtasks] = useState<SubTask[]>(existing.subtasks || []);
     const [totalEstimate, setTotalEstimate] = useState(existing.totalEstimate || '');
     const [notes, setNotes] = useState(existing.notes || '');
+    const impactedFiles = existing.impactedFiles || [];
+    const newFiles = existing.newFiles || [];
+    const [conflicts, setConflicts] = useState<PlanningData['conflicts']>(existing.conflicts || []);
+    const [checkingConflicts, setCheckingConflicts] = useState(false);
     const [newTask, setNewTask] = useState<SubTask>({ title: '', layer: 'backend', assignee: '', estimate: '', status: 'todo' });
 
     const addTask = () => {
@@ -495,8 +514,33 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
     const layerColors: Record<string, string> = { database: '#9B59B6', backend: '#3498DB', frontend: '#E67E22', testing: '#2ECC71', config: '#7F8C8D', devops: '#1ABC9C' };
 
     const savePlanning = () => {
-      save({ planning: { subtasks, totalEstimate, notes } });
+      save({ planning: { subtasks, totalEstimate, notes, impactedFiles, newFiles, conflicts } });
     };
+
+    // Check for conflicts with other user stories
+    const checkConflicts = async () => {
+      if (impactedFiles.length === 0 && newFiles.length === 0) return;
+      setCheckingConflicts(true);
+      try {
+        const res = await fetch(`/api/projects/${project.id}/conflicts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storyId: story.id,
+            files: [...impactedFiles, ...newFiles],
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setConflicts(data.conflicts || []);
+        }
+      } catch { /* ignore */ }
+      setCheckingConflicts(false);
+    };
+
+    const allFiles = [...impactedFiles, ...newFiles];
+    const allSubtaskFiles = subtasks.flatMap(t => t.files || []);
+    const uniqueFiles = [...new Set([...allFiles, ...allSubtaskFiles])];
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -530,21 +574,105 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
               <span>LAYER</span><span>TASK</span><span>ASSIGNEE</span><span>EST.</span><span>STATUS</span><span></span>
             </div>
             {subtasks.map((t, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '100px 1fr 120px 70px 80px 30px', gap: '10px', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid #161616', fontSize: '12px' }}>
-                <span style={{ fontSize: '10px', letterSpacing: '.08em', color: layerColors[t.layer] || '#6A6A6A' }}>{t.layer.toUpperCase()}</span>
-                <span style={{ color: '#B3B3B3' }}>{t.title}</span>
-                <span style={{ color: '#7A7A7A' }}>{t.assignee || '—'}</span>
-                <span style={{ color: '#F39C12', fontFamily: '"JetBrains Mono", monospace', fontSize: '11px' }}>{t.estimate || '—'}</span>
-                <select className="ds-input" style={{ fontSize: '10px', padding: '2px 4px' }} value={t.status} onChange={(e) => { const u = [...subtasks]; u[i] = { ...t, status: e.target.value }; setSubtasks(u); }}>
-                  <option value="todo">TODO</option>
-                  <option value="in-progress">IN PROGRESS</option>
-                  <option value="done">DONE</option>
-                </select>
-                <span style={{ color: '#3A3A3A', cursor: 'pointer', textAlign: 'center' }} onClick={() => removeTask(i)}>×</span>
+              <div key={i} style={{ borderBottom: '1px solid #161616' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 120px 70px 80px 30px', gap: '10px', alignItems: 'center', padding: '10px 16px', fontSize: '12px' }}>
+                  <span style={{ fontSize: '10px', letterSpacing: '.08em', color: layerColors[t.layer] || '#6A6A6A' }}>{t.layer.toUpperCase()}</span>
+                  <span style={{ color: '#B3B3B3' }}>{t.title}</span>
+                  <span style={{ color: '#7A7A7A' }}>{t.assignee || '—'}</span>
+                  <span style={{ color: '#F39C12', fontFamily: '"JetBrains Mono", monospace', fontSize: '11px' }}>{t.estimate || '—'}</span>
+                  <select className="ds-input" style={{ fontSize: '10px', padding: '2px 4px' }} value={t.status} onChange={(e) => { const u = [...subtasks]; u[i] = { ...t, status: e.target.value }; setSubtasks(u); }}>
+                    <option value="todo">TODO</option>
+                    <option value="in-progress">IN PROGRESS</option>
+                    <option value="done">DONE</option>
+                  </select>
+                  <span style={{ color: '#3A3A3A', cursor: 'pointer', textAlign: 'center' }} onClick={() => removeTask(i)}>×</span>
+                </div>
+                {t.files && t.files.length > 0 && (
+                  <div style={{ padding: '0 16px 8px 110px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {t.files.map((f, fi) => (
+                      <span key={fi} style={{ fontSize: '9px', color: '#6A6A6A', background: '#111', padding: '2px 6px', border: '1px solid #1F1F1F', fontFamily: '"JetBrains Mono", monospace' }}>{f}</span>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
+
+        {/* IMPACTED FILES — file-level impact analysis */}
+        {uniqueFiles.length > 0 && (
+          <div className="ds-card" style={{ padding: '20px', borderColor: '#F39C1233' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F39C12' }} />
+                <div className="ds-label" style={{ color: '#F39C12' }}>FILE IMPACT ANALYSIS</div>
+                <span style={{ fontSize: '10px', color: '#5A5A5A' }}>{uniqueFiles.length} file{uniqueFiles.length !== 1 ? 's' : ''}</span>
+              </div>
+              <button
+                className="ds-btn-ghost ds-btn-sm"
+                onClick={checkConflicts}
+                disabled={checkingConflicts}
+                style={{ color: '#FF2A2A', borderColor: '#FF2A2A33', fontSize: '10px', letterSpacing: '.1em' }}
+              >
+                {checkingConflicts ? '[ CHECKING... ]' : '[ CHECK CONFLICTS ]'}
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {impactedFiles.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '9px', letterSpacing: '.12em', color: '#F39C12', marginBottom: '6px' }}>MODIFIED FILES ({impactedFiles.length})</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    {impactedFiles.map((f, i) => (
+                      <span key={i} style={{ fontSize: '10px', color: '#B3B3B3', fontFamily: '"JetBrains Mono", monospace', padding: '3px 8px', background: '#0D0D0D', border: '1px solid #1F1F1F' }}>
+                        ✎ {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {newFiles.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '9px', letterSpacing: '.12em', color: '#2ECC71', marginBottom: '6px' }}>NEW FILES ({newFiles.length})</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    {newFiles.map((f, i) => (
+                      <span key={i} style={{ fontSize: '10px', color: '#B3B3B3', fontFamily: '"JetBrains Mono", monospace', padding: '3px 8px', background: '#0D0D0D', border: '1px solid #1A3A1A' }}>
+                        + {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* CONFLICT WARNINGS */}
+        {conflicts && conflicts.length > 0 && (
+          <div className="ds-card" style={{ padding: '20px', borderColor: '#FF2A2A', background: '#1A0808' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '16px' }}>⚠</span>
+              <div className="ds-label" style={{ color: '#FF2A2A' }}>CONFLICT DETECTED — {conflicts.length} OVERLAPPING STOR{conflicts.length !== 1 ? 'IES' : 'Y'}</div>
+            </div>
+            <div style={{ fontSize: '11px', color: '#FF8A8A', marginBottom: '12px', lineHeight: 1.6 }}>
+              The following user stories modify the same files. Assigning these to different developers simultaneously may cause merge conflicts.
+            </div>
+            {conflicts.map((c, ci) => (
+              <div key={ci} style={{ padding: '10px 14px', background: '#0D0D0D', border: '1px solid #FF2A2A33', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', color: '#FFFFFF', fontWeight: 700, marginBottom: '6px' }}>
+                  {c.storyTitle}
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {c.sharedFiles.map((f, fi) => (
+                    <span key={fi} style={{ fontSize: '9px', color: '#FF2A2A', background: '#1A0505', padding: '2px 6px', border: '1px solid #FF2A2A44', fontFamily: '"JetBrains Mono", monospace' }}>
+                      {f}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div className="ds-card" style={{ padding: '20px' }}>
             <div className="ds-label" style={{ marginBottom: '10px' }}>TOTAL ESTIMATE</div>

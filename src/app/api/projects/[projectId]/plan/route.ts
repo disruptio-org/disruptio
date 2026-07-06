@@ -153,6 +153,12 @@ Generate the implementation plan as JSON.`;
       plan = { error: 'Failed to parse AI response', raw };
     }
 
+    // Normalize impact analysis into consistent format for the planning tab
+    if (plan.impactAnalysis) {
+      plan.impactedFiles = plan.impactAnalysis.existingFilesToModify || [];
+      plan.newFiles = plan.impactAnalysis.newFilesToCreate || [];
+    }
+
     // Enrich with metadata
     plan.feature = feature;
     plan.userStory = userStory || null;
