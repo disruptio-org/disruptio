@@ -1533,6 +1533,170 @@ ${storyContext}`,
             <div style={{ fontSize: '11px', color: '#5A5A5A', letterSpacing: '.08em' }}>No reviews submitted yet.</div>
           </div>
         )}
+
+        {/* AI Code Evaluation */}
+        <AiEvaluationSection storyId={story.id} projectId={project.id} existingEvaluation={story.codeEvaluation as any} />
+      </div>
+    );
+  };
+
+  // --- AI Evaluation Component (used inside CodeReviewTab) ---
+  const AiEvaluationSection = ({ storyId, projectId, existingEvaluation }: { storyId: string; projectId: string; existingEvaluation: any }) => {
+    const [evaluation, setEvaluation] = useState<any>(existingEvaluation || null);
+    const [running, setRunning] = useState(false);
+    const [error, setError] = useState('');
+
+    const runEvaluation = async () => {
+      setRunning(true);
+      setError('');
+      try {
+        const res = await fetch(`/api/projects/${projectId}/github-dev/evaluate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storyId }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setEvaluation(data.evaluation);
+          setStory((prev: any) => ({ ...prev, codeEvaluation: data.evaluation }));
+        } else {
+          setError(data.error || 'Evaluation failed');
+        }
+      } catch (e: any) { setError(e.message); }
+      setRunning(false);
+    };
+
+    const SEVERITY_COLORS: Record<string, string> = { high: '#FF2A2A', medium: '#F39C12', low: '#5A5A5A' };
+
+    return (
+      <div className="ds-card" style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div className="ds-label">AI CODE EVALUATION</div>
+          <button
+            className="ds-btn-primary ds-btn-sm"
+            disabled={running || !story.githubPrNumber}
+            onClick={runEvaluation}
+            style={{ letterSpacing: '.1em' }}
+          >
+            {running ? '[ EVALUATING... ]' : evaluation ? '[ RE-EVALUATE ]' : '[ RUN EVALUATION ]'}
+          </button>
+        </div>
+
+        {running && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 0' }}>
+            <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
+            <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>ANALYZING PR DIFF AGAINST CRITERIA...</span>
+          </div>
+        )}
+
+        {error && <div style={{ padding: '12px', fontSize: '11px', color: '#FF2A2A', background: '#FF2A2A10', border: '1px solid #FF2A2A33', marginBottom: '12px' }}>{error}</div>}
+
+        {evaluation && !running && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Score Bar */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+                <span style={{ fontSize: '24px', fontWeight: 700, color: evaluation.score >= 80 ? '#2ECC71' : evaluation.score >= 50 ? '#F39C12' : '#FF2A2A', fontFamily: 'JetBrains Mono' }}>
+                  {evaluation.score}%
+                </span>
+                <span style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.08em' }}>
+                  {evaluation.model} · {evaluation.evaluatedAt ? new Date(evaluation.evaluatedAt).toLocaleDateString() : ''}
+                </span>
+              </div>
+              <div style={{ width: '100%', height: '6px', background: '#1A1A1A', overflow: 'hidden' }}>
+                <div style={{
+                  width: `${evaluation.score}%`, height: '100%',
+                  background: evaluation.score >= 80 ? '#2ECC71' : evaluation.score >= 50 ? '#F39C12' : '#FF2A2A',
+                  transition: 'width .5s ease',
+                }} />
+              </div>
+            </div>
+
+            {/* Summary */}
+            {evaluation.summary && (
+              <div style={{ fontSize: '11px', color: '#B3B3B3', lineHeight: 1.7, padding: '12px', background: '#0A0A0A', border: '1px solid #1A1A1A' }}>
+                {evaluation.summary}
+              </div>
+            )}
+
+            {/* Acceptance Criteria Results */}
+            {evaluation.criteriaResults?.length > 0 && (
+              <div>
+                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>ACCEPTANCE CRITERIA</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {evaluation.criteriaResults.map((cr: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 12px', background: '#0A0A0A', border: '1px solid #1A1A1A' }}>
+                      <span style={{ fontSize: '12px', color: cr.met ? '#2ECC71' : '#FF2A2A', flexShrink: 0, marginTop: '1px' }}>
+                        {cr.met ? '✓' : '✗'}
+                      </span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '11px', color: cr.met ? '#B3B3B3' : '#FFFFFF' }}>{cr.criterion}</div>
+                        {cr.evidence && <div style={{ fontSize: '10px', color: '#5A5A5A', marginTop: '4px' }}>{cr.evidence}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Requirement Results */}
+            {evaluation.requirementResults?.length > 0 && (
+              <div>
+                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>REQUIREMENTS</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {evaluation.requirementResults.map((rr: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 12px', background: '#0A0A0A', border: '1px solid #1A1A1A' }}>
+                      <span style={{ fontSize: '12px', color: rr.met ? '#2ECC71' : '#FF2A2A', flexShrink: 0, marginTop: '1px' }}>
+                        {rr.met ? '✓' : '✗'}
+                      </span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '11px', color: '#B3B3B3' }}>{rr.requirement}</div>
+                        {rr.evidence && <div style={{ fontSize: '10px', color: '#5A5A5A', marginTop: '4px' }}>{rr.evidence}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Risks */}
+            {evaluation.risks?.length > 0 && (
+              <div>
+                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>RISKS DETECTED</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {evaluation.risks.map((r: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#0A0A0A', border: `1px solid ${SEVERITY_COLORS[r.severity] || '#1A1A1A'}33` }}>
+                      <span style={{ fontSize: '9px', letterSpacing: '.08em', padding: '2px 6px', border: `1px solid ${SEVERITY_COLORS[r.severity] || '#5A5A5A'}`, color: SEVERITY_COLORS[r.severity] || '#5A5A5A' }}>
+                        {(r.severity || 'info').toUpperCase()}
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#B3B3B3' }}>{r.description}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Suggestions */}
+            {evaluation.suggestions?.length > 0 && (
+              <div>
+                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>SUGGESTIONS</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {evaluation.suggestions.map((s: string, i: number) => (
+                    <div key={i} style={{ padding: '8px 12px', background: '#0A0A0A', border: '1px solid #1A1A1A', fontSize: '11px', color: '#B3B3B3' }}>
+                      {s}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!evaluation && !running && (
+          <div style={{ fontSize: '11px', color: '#3A3A3A', padding: '12px 0' }}>
+            Run an AI evaluation to check the PR diff against the acceptance criteria, requirements, and gherkin scenarios.
+          </div>
+        )}
       </div>
     );
   };
