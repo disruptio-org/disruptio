@@ -239,22 +239,32 @@ Generate the complete document in markdown format. Use proper headers (##, ###),
     const client = createProjectClient(project);
     const model = project.aiModel || 'gpt-4o';
 
-    const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userMessage },
-    ];
+    // Reasoning models (o1, o3, o4) don't support the 'system' role.
+    // For those models, merge system instructions into the user message.
+    const isReasoningModel = /^(o1|o3|o4)/.test(model);
+
+    const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = isReasoningModel
+      ? [{ role: 'user', content: `${systemPrompt}\n\n---\n\n${userMessage}` }]
+      : [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ];
 
     const completion = await safeCompletion(client, {
       model,
       messages,
       temperature: 0.3,
-      max_completion_tokens: 8192,
+      max_completion_tokens: 16384,
     });
 
-    const content = completion.choices[0]?.message?.content || '';
+    const choice = completion.choices[0];
+    const content = choice?.message?.content || '';
+    const refusal = (choice?.message as any)?.refusal;
 
     if (!content) {
-      return NextResponse.json({ error: 'AI returned empty response' }, { status: 500 });
+      const reason = refusal || choice?.finish_reason || 'unknown';
+      console.error('[Documentation] Empty response from model:', model, 'finish_reason:', choice?.finish_reason, 'refusal:', refusal);
+      return NextResponse.json({ error: `AI returned empty response (reason: ${reason}). Try a different model or reduce context.` }, { status: 500 });
     }
 
     // Check for existing doc of same type — update if exists
