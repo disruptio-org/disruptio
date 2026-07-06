@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { createProjectClient } from '@/lib/openai';
+import { createProjectClient, safeCompletion } from '@/lib/openai';
 
 const DOC_TYPES = [
   { id: 'architecture', label: 'Architecture Overview', emoji: '🏗️' },
@@ -239,16 +239,15 @@ Generate the complete document in markdown format. Use proper headers (##, ###),
     const client = createProjectClient(project);
     const model = project.aiModel || 'gpt-4o';
 
-    // Some models (o1, o3) don't support temperature
-    const supportsTemperature = !model.startsWith('o1') && !model.startsWith('o3');
+    const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage },
+    ];
 
-    const completion = await client.chat.completions.create({
+    const completion = await safeCompletion(client, {
       model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      ...(supportsTemperature ? { temperature: 0.3 } : {}),
+      messages,
+      temperature: 0.3,
       max_completion_tokens: 8192,
     });
 

@@ -64,3 +64,33 @@ export function createProjectClient(project: { aiProvider?: string | null; aiApi
 
   return new OpenAI({ apiKey, baseURL });
 }
+
+/**
+ * Create a chat completion with automatic retry for unsupported params.
+ * Some models (o1, o3, o4, gpt-5.x) don't support temperature or max_tokens.
+ * This helper tries with the given params first, then retries without them if rejected.
+ */
+export async function safeCompletion(
+  client: OpenAI,
+  params: {
+    model: string;
+    messages: { role: 'system' | 'user' | 'assistant'; content: string }[];
+    temperature?: number;
+    max_completion_tokens?: number;
+  }
+) {
+  try {
+    return await client.chat.completions.create(params);
+  } catch (err: any) {
+    const msg = err?.message || '';
+    if (msg.includes('temperature') || msg.includes('max_tokens') || msg.includes('max_completion_tokens')) {
+      // Retry without temperature and with different token param
+      const { temperature, max_completion_tokens, ...rest } = params;
+      return await client.chat.completions.create({
+        ...rest,
+        ...(max_completion_tokens && !msg.includes('max_completion_tokens') ? { max_completion_tokens } : {}),
+      });
+    }
+    throw err;
+  }
+}
