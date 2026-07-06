@@ -53,6 +53,14 @@ model Project {
   coreWorkflows   String?
   source          String   @default("manual")
   status          String   @default("active")
+
+  // AI / LLM Configuration (per-project)
+  aiProvider      String?  @default("openai")   // openai, anthropic, google, azure, ollama
+  aiModel         String?  @default("gpt-4")    // model identifier
+  aiApiKey        String?                        // encrypted API key (per-project override)
+  aiBaseUrl       String?                        // custom endpoint (Azure, Ollama, etc.)
+  aiTemperature   Float?   @default(0.3)
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
