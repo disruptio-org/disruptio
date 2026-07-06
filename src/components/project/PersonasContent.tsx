@@ -2,9 +2,11 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 
 export default function PersonasContent({ project }: { project: any }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', role: '', description: '', goals: '', painPoints: '', technicalLevel: '', workflows: '', needs: '', risks: '' });
@@ -48,7 +50,8 @@ export default function PersonasContent({ project }: { project: any }) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this persona?')) return;
+    const ok = await confirm({ title: 'DELETE PERSONA', message: 'Delete this persona? This action cannot be undone.', confirmLabel: 'DELETE', danger: true });
+    if (!ok) return;
     await fetch(`/api/projects/${project.id}/personas?personaId=${id}`, { method: 'DELETE' });
     router.refresh();
   };

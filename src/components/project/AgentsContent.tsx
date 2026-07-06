@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 
 interface DiagnosticResult {
   runId: string;
@@ -14,6 +15,7 @@ interface DiagnosticResult {
 
 export default function AgentsContent({ project }: { project: any }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [agents, setAgents] = useState(project.agents.map((a: any) => ({ ...a, open: false })));
   const [diagnostics, setDiagnostics] = useState<Record<string, { loading: boolean; result?: DiagnosticResult }>>({}); 
   const [planFeature, setPlanFeature] = useState('');
@@ -81,7 +83,8 @@ export default function AgentsContent({ project }: { project: any }) {
   };
 
   const deleteAgent = async (agentId: string) => {
-    if (!confirm('Delete this agent? This action cannot be undone.')) return;
+    const ok = await confirm({ title: 'DELETE AGENT', message: 'Delete this agent? This action cannot be undone.', confirmLabel: 'DELETE', danger: true });
+    if (!ok) return;
     try {
       const res = await fetch(`/api/projects/${project.id}/agents?agentId=${agentId}`, { method: 'DELETE' });
       if (res.ok) {
