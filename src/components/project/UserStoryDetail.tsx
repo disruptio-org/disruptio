@@ -39,6 +39,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
     return 'story';
   });
   const handleTabChange = (tab: TabKey) => { setActiveTab(tab); window.location.hash = tab; };
+  const [storyVersion, setStoryVersion] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -193,6 +194,7 @@ ${storyContext}`,
             const updatedStory = await patchRes.json();
             // Update local state directly so all tabs pick up the new data
             setStory((prev: any) => ({ ...prev, ...updatedStory }));
+            setStoryVersion((v) => v + 1);
             setAiDone((p) => ({ ...p, [tab]: true }));
             console.log('[AI Assist] Saved successfully');
           } else {
@@ -2017,7 +2019,7 @@ ${storyContext}`,
       </div>
 
       {/* Active Tab Content */}
-      <div style={{ animation: 'dsFadeIn .2s ease-out' }} key={activeTab}>
+      <div style={{ animation: 'dsFadeIn .2s ease-out' }} key={`${activeTab}-${storyVersion}`}>
         <ActiveContent />
       </div>
     </div>
