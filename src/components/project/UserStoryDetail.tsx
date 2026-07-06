@@ -549,9 +549,16 @@ ${storyContext}`,
         });
         const data = await res.json();
         if (res.ok) {
-          const updated = [...mockups, data.mockup];
-          setStory((prev: any) => ({ ...prev, mockups: updated }));
-          setActiveMockup(updated.length - 1);
+          // Handle both single mockup and multi-screen auto-generate
+          if (data.mockups && Array.isArray(data.mockups)) {
+            const updated = [...mockups, ...data.mockups];
+            setStory((prev: any) => ({ ...prev, mockups: updated }));
+            setActiveMockup(mockups.length); // jump to first new one
+          } else if (data.mockup) {
+            const updated = [...mockups, data.mockup];
+            setStory((prev: any) => ({ ...prev, mockups: updated }));
+            setActiveMockup(updated.length - 1);
+          }
           setMockupPrompt('');
         } else {
           setMockupError(data.error || 'Generation failed');

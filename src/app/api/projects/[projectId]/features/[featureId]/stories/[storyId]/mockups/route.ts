@@ -36,42 +36,42 @@ export async function POST(
     agentConfig = await prisma.agentConfiguration.findUnique({ where: { id: agentId } });
   }
 
-  // Build design context
+  // Read actual CSS from the project for pixel-perfect matching
+  const fs = await import('fs');
+  const path = await import('path');
+  let actualCSS = '';
+  try {
+    const cssPath = path.join(process.cwd(), 'src/app/globals.css');
+    actualCSS = fs.readFileSync(cssPath, 'utf-8');
+  } catch { /* fallback to manual tokens */ }
+
   const ds = project.designStyle;
   const gl = project.guidelines;
-  const designContext = ds ? `
+
+  const designContext = actualCSS ? `
+## ACTUAL APPLICATION CSS (use this as the reference for pixel-perfect matching)
+\`\`\`css
+${actualCSS}
+\`\`\`
+` : ds ? `
 ## Design Style
 - Brand Personality: ${ds.brandPersonality || 'Not specified'}
 - Color Palette: ${ds.colorPalette || 'Dark mode, #FF2A2A accent'}
 - Typography: ${ds.typography || 'JetBrains Mono, monospace'}
 - Spacing: ${ds.spacing || 'Compact'}
 - Component Style: ${ds.componentStyle || 'Sharp corners, no border-radius'}
-- Iconography: ${ds.iconography || 'Minimal'}
-- Tone: ${ds.tone || 'Professional, technical'}
-- DO: ${ds.dos || 'Use consistent spacing'}
-- DON'T: ${ds.donts || 'Use rounded corners'}
 ` : `
 ## Design Style (defaults)
-- Dark mode background: #0A0A0A
-- Accent color: #FF2A2A
-- Font: 'JetBrains Mono', monospace
-- Sharp corners (border-radius: 0)
-- Border color: #1F1F1F
-- Text colors: #FFFFFF (headings), #B3B3B3 (body), #5A5A5A (labels)
+- Dark mode background: #0A0A0A, Accent: #FF2A2A, Font: JetBrains Mono
 `;
 
   const uxContext = gl ? `
 ## UX Guidelines
-- UX Principles: ${gl.uxPrinciples || 'Not specified'}
 - Navigation: ${gl.navigationPrinciples || 'Sidebar navigation'}
 - Form Behavior: ${gl.formBehavior || 'Inline validation'}
 - Empty States: ${gl.emptyStateRules || 'Show helpful message'}
-- Loading States: ${gl.loadingStateRules || 'Show spinner'}
-- Error States: ${gl.errorStateRules || 'Show red error message'}
-- Responsive: ${gl.responsiveRules || 'Desktop first'}
 ` : '';
 
-  // Build story context
   const storyContext = `
 ## User Story
 Feature: ${story.feature.title}
@@ -82,42 +82,143 @@ ${JSON.stringify(story.requirements || [], null, 2)}
 
 ## Acceptance Criteria
 ${JSON.stringify(story.acceptanceCriteria || [], null, 2)}
+
+## Gherkin Scenarios
+${JSON.stringify(story.gherkinScenarios || [], null, 2)}
 `;
 
-  // System prompt
   const systemPrompt = agentConfig?.systemInstructions
     ? `${agentConfig.systemInstructions}\n\nYou are generating an HTML mockup. Follow the rules below strictly.`
-    : 'You are a senior UI/UX designer and frontend developer specializing in creating pixel-perfect HTML mockups.';
+    : 'You are a senior UI/UX designer and frontend developer. You create pixel-perfect HTML mockups that exactly match the given CSS design system.';
 
-  // Build the screen description — auto-generate from story if no prompt
-  let screenDescription = prompt;
-  if (!screenDescription || autoGenerate) {
-    // Build a rich description from story context
-    const reqsList = (story.requirements as any[]) || [];
-    const funcReqs = reqsList.filter((r: any) => r.type === 'functional').map((r: any) => r.description).join('; ');
-    const criteria = story.acceptanceCriteria as any;
-    const criteriaStr = Array.isArray(criteria) ? criteria.join('; ') : '';
-    const gherkins = (story.gherkinScenarios as any[]) || [];
-    const gherkinStr = gherkins.map((g: any) => `${g.title}: Given ${g.given}, When ${g.when}, Then ${g.then}`).join('\n');
+  try {
+    const client = createProjectClient(project);
+    const model = project.aiModel || 'gpt-4o';
+    const needsSystemMerge = /^(o1|o3|o4|gpt-5)/.test(model);
 
-    screenDescription = `Generate the main screen for this user story.
+    const makeMessages = (sys: string, usr: string) => {
+      const msgs: { role: 'system' | 'user' | 'assistant'; content: string }[] = needsSystemMerge
+        ? [{ role: 'user', content: `${sys}\n\n---\n\n${usr}` }]
+        : [{ role: 'system', content: sys }, { role: 'user', content: usr }];
+      return msgs;
+    };
 
-User Story: As a ${story.persona}, I want to ${story.action} so that ${story.benefit}.
-Feature: ${story.feature.title}
+    const cleanHtml = (raw: string) => {
+      let h = raw.replace(/^```html\s*/i, '').replace(/\s*```\s*$/, '').trim();
+      if (!h.startsWith('<!DOCTYPE') && !h.startsWith('<html') && !h.startsWith('<HTML')) {
+        const idx = h.indexOf('<!DOCTYPE');
+        if (idx > 0) h = h.substring(idx);
+      }
+      return h;
+    };
 
-Key functional requirements:
-${funcReqs || 'Not specified'}
+    // ─── AUTO-GENERATE: Plan screens first, then generate each ───
+    if (autoGenerate) {
+      // Step 1: Plan which screens to generate
+      const planPrompt = `Analyze this user story and identify the DISTINCT screens/views needed.
 
-Acceptance criteria to satisfy:
-${criteriaStr || 'Not specified'}
+${storyContext}
 
-User scenarios to support:
-${gherkinStr || 'Not specified'}
+Return a JSON array of screen objects. Each object has:
+- "title": Short screen title (e.g., "Documentation List View")
+- "description": What this screen shows and what the user does here
 
-Create the PRIMARY screen that would be needed to fulfill this user story. Include all interactive elements (buttons, forms, lists, navigation) that the requirements describe. Use realistic data and labels.`;
-  }
+RULES:
+- Only include screens directly relevant to this user story
+- Do NOT include a login/authentication screen unless the story explicitly mentions it
+- Each screen should represent a DIFFERENT step in the user flow
+- Order them in the natural user journey sequence
+- Typically 2-5 screens per user story
+- Return ONLY the JSON array, no markdown, no explanation
 
-  const userMessage = `Generate a COMPLETE, self-contained HTML page for the following screen mockup.
+Example output:
+[{"title":"Documentation Types List","description":"Shows all available documentation types with generate buttons and status"},{"title":"Generated Document View","description":"Shows a fully rendered document with export options"}]`;
+
+      const planCompletion = await safeCompletion(client, {
+        model,
+        messages: makeMessages(systemPrompt, planPrompt),
+        temperature: 0.3,
+        max_completion_tokens: 2048,
+      });
+
+      let planRaw = planCompletion.choices[0]?.message?.content || '[]';
+      planRaw = planRaw.replace(/^```json?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+      
+      let screens: { title: string; description: string }[] = [];
+      try {
+        screens = JSON.parse(planRaw);
+        if (!Array.isArray(screens)) screens = [screens];
+      } catch {
+        screens = [{ title: `${story.feature.title} — Main View`, description: `Main screen for: ${story.action}` }];
+      }
+
+      // Step 2: Generate each screen
+      const existingMockups = (story.mockups as any[]) || [];
+      const newMockups: any[] = [];
+
+      for (let i = 0; i < screens.length; i++) {
+        const screen = screens[i];
+        const screenPrompt = `Generate a COMPLETE, self-contained HTML page for this specific screen:
+
+# Screen: ${screen.title}
+${screen.description}
+
+This is screen ${i + 1} of ${screens.length} in the user flow for this story.
+
+${storyContext}
+${designContext}
+${uxContext}
+
+# STRICT RULES
+1. Return ONLY valid HTML — no markdown, no explanation, no backticks
+2. Copy the CSS classes and variables from the application CSS above into a <style> block
+3. Include: <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+4. Use the EXACT same CSS classes as the real app (ds-card, ds-btn-primary, ds-input, ds-sidebar, ds-sidebar-item, etc.)
+5. The sidebar should have these exact items: Overview, Product Context, Personas, UX/UI Guidelines, Design Style, Technology View, GitHub Repository, Agents, Features, Documentation, Settings
+6. Use REALISTIC data — actual labels matching the user story context. No placeholder text.
+7. Include hover effects and transitions matching the CSS
+8. The layout must be: fixed sidebar (236px) + scrollable main content
+9. The HTML must start with <!DOCTYPE html>
+10. DO NOT include any text before or after the HTML`;
+
+        const screenCompletion = await safeCompletion(client, {
+          model,
+          messages: makeMessages(systemPrompt, screenPrompt),
+          temperature: 0.4,
+          max_completion_tokens: 16384,
+        });
+
+        const html = cleanHtml(screenCompletion.choices[0]?.message?.content || '');
+        if (html) {
+          newMockups.push({
+            id: `screen-${Date.now()}-${i}`,
+            title: screen.title,
+            description: screen.description,
+            html,
+            status: 'draft',
+            order: existingMockups.length + i,
+            createdAt: new Date().toISOString(),
+          });
+        }
+      }
+
+      if (newMockups.length === 0) {
+        return NextResponse.json({ error: 'AI failed to generate any screens' }, { status: 500 });
+      }
+
+      const updatedMockups = [...existingMockups, ...newMockups];
+      await prisma.userStory.update({
+        where: { id: storyId },
+        data: { mockups: updatedMockups },
+      });
+
+      return NextResponse.json({ ok: true, mockups: newMockups, total: updatedMockups.length });
+    }
+
+    // ─── MANUAL PROMPT: Generate a single screen ───
+    const screenDescription = prompt || 'Generate the main screen for this user story.';
+
+    const userMessage = `Generate a COMPLETE, self-contained HTML page for this screen:
 
 # Screen Description
 ${screenDescription}
@@ -127,68 +228,34 @@ ${designContext}
 ${uxContext}
 
 # STRICT RULES
-1. Return ONLY valid HTML — no markdown, no explanation, no backticks, no \`\`\`html wrapper
-2. Use ONLY inline <style> blocks — no external CSS, no CDN links
-3. Include the Google Font link for JetBrains Mono: <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-4. Match the project design system EXACTLY:
-   - Background: #0A0A0A
-   - Cards/panels: #0D0D0D with border: 1px solid #1F1F1F
-   - Accent: #FF2A2A
-   - Font: 'JetBrains Mono', monospace
-   - Border radius: 0 (sharp corners everywhere)
-   - Text: #B3B3B3 (body), #FFFFFF (headings), #5A5A5A (labels)
-   - Buttons: background #FF2A2A, text #FFFFFF, no border-radius
-   - Input fields: background #0A0A0A, border 1px solid #2A2A2A, no border-radius
-5. Use REALISTIC data — actual labels, names, numbers. No "Lorem ipsum"
-6. Include hover effects with CSS transitions (0.15s ease)
-7. Make it responsive — use flexbox/grid
-8. Include a left sidebar navigation if the screen is a full page view
-9. The HTML must start with <!DOCTYPE html> and be a complete valid document
+1. Return ONLY valid HTML — no markdown, no explanation, no backticks
+2. Copy the CSS classes and variables from the application CSS above into a <style> block
+3. Include: <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+4. Use the EXACT same CSS classes as the real app (ds-card, ds-btn-primary, ds-input, ds-sidebar, ds-sidebar-item, etc.)
+5. The sidebar should have these exact items: Overview, Product Context, Personas, UX/UI Guidelines, Design Style, Technology View, GitHub Repository, Agents, Features, Documentation, Settings
+6. Use REALISTIC data — actual labels matching the user story context
+7. Include hover effects and transitions matching the CSS
+8. The layout must be: fixed sidebar (236px) + scrollable main content
+9. The HTML must start with <!DOCTYPE html>
 10. DO NOT include any text before or after the HTML`;
-
-  try {
-    const client = createProjectClient(project);
-    const model = project.aiModel || 'gpt-4o';
-
-    const needsSystemMerge = /^(o1|o3|o4|gpt-5)/.test(model);
-
-    const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = needsSystemMerge
-      ? [{ role: 'user', content: `${systemPrompt}\n\n---\n\n${userMessage}` }]
-      : [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage },
-        ];
 
     const completion = await safeCompletion(client, {
       model,
-      messages,
+      messages: makeMessages(systemPrompt, userMessage),
       temperature: 0.4,
       max_completion_tokens: 16384,
     });
 
-    let html = completion.choices[0]?.message?.content || '';
+    const html = cleanHtml(completion.choices[0]?.message?.content || '');
     if (!html) {
       return NextResponse.json({ error: 'AI returned empty response' }, { status: 500 });
     }
 
-    // Clean up — strip markdown wrappers if present
-    html = html.replace(/^```html\s*/i, '').replace(/\s*```\s*$/, '').trim();
-    if (!html.startsWith('<!DOCTYPE') && !html.startsWith('<html') && !html.startsWith('<HTML')) {
-      // Try to find the HTML start
-      const idx = html.indexOf('<!DOCTYPE');
-      if (idx > 0) html = html.substring(idx);
-    }
-
-    // Create mockup entry
     const existingMockups = (story.mockups as any[]) || [];
     const newMockup = {
       id: `screen-${Date.now()}`,
-      title: autoGenerate
-        ? `${story.feature.title} — Main Screen`
-        : (prompt && prompt.length > 60 ? prompt.slice(0, 57) + '...' : prompt || 'Generated Screen'),
-      description: autoGenerate
-        ? `Auto-generated from user story: As a ${story.persona}, I want to ${story.action}`
-        : prompt || 'Custom screen',
+      title: prompt && prompt.length > 60 ? prompt.slice(0, 57) + '...' : prompt || 'Generated Screen',
+      description: prompt || 'Custom screen',
       html,
       status: 'draft',
       order: existingMockups.length,
@@ -196,7 +263,6 @@ ${uxContext}
     };
 
     const updatedMockups = [...existingMockups, newMockup];
-
     await prisma.userStory.update({
       where: { id: storyId },
       data: { mockups: updatedMockups },
