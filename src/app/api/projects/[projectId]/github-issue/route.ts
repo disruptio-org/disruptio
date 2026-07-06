@@ -5,6 +5,50 @@ import prisma from '@/lib/prisma';
 import { createOctokit } from '@/lib/github';
 import { cookies } from 'next/headers';
 
+// Render HTML mockup to a PNG buffer using Puppeteer
+async function renderMockupToImage(html: string): Promise<Buffer> {
+  const puppeteer = await import('puppeteer');
+  const browser = await puppeteer.default.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 800 });
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 15000 });
+    // Wait a bit for fonts to load
+    await new Promise(r => setTimeout(r, 1000));
+    const screenshot = await page.screenshot({ type: 'png', fullPage: true }) as Buffer;
+    return screenshot;
+  } finally {
+    await browser.close();
+  }
+}
+
+// Upload image to GitHub repo and return the raw URL
+async function uploadMockupImage(
+  octokit: any, owner: string, repo: string,
+  imagePath: string, imageBuffer: Buffer, branch?: string,
+): Promise<string> {
+  const content = imageBuffer.toString('base64');
+  // Check if file exists
+  let sha: string | undefined;
+  try {
+    const { data } = await octokit.repos.getContent({ owner, repo, path: imagePath });
+    sha = (data as any).sha;
+  } catch { /* file doesn't exist yet */ }
+
+  await octokit.repos.createOrUpdateFileContents({
+    owner, repo, path: imagePath,
+    message: `docs: update mockup image ${imagePath.split('/').pop()}`,
+    content,
+    sha,
+    branch: branch || undefined,
+  });
+
+  return `https://raw.githubusercontent.com/${owner}/${repo}/${branch || 'main'}/${imagePath}`;
+}
+
 /**
  * GET /api/projects/[projectId]/github-issue?storyId=xxx
  * 
@@ -94,11 +138,73 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
 
   // Build the issue content
   const title = `[${story.feature.title}] As a ${story.persona}, I want to ${story.action}`;
-  const body = buildIssueBody(story);
   const labels = buildLabels(story);
+  const octokit = createOctokit(token);
+
+  // Generate mockup screenshots and upload to GitHub
+  const mockups = (story.mockups as any[]) || [];
+  const approvedMockups = mockups.filter((m: any) => m.status === 'approved');
+  // If none approved, use all mockups (drafts included)
+  const mockupsToUpload = approvedMockups.length > 0 ? approvedMockups : mockups;
+  const mockupImageUrls: { title: string; url: string }[] = [];
+
+  if (mockupsToUpload.length > 0) {
+    try {
+      const repoInfo = await octokit.repos.get({ owner: connection.owner, repo: connection.repository });
+      const defaultBranch = repoInfo.data.default_branch || 'main';
+
+      for (let i = 0; i < mockupsToUpload.length; i++) {
+        const m = mockupsToUpload[i];
+        try {
+          const imageBuffer = await renderMockupToImage(m.html);
+          const safeName = (m.title || `screen-${i + 1}`)
+            .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50);
+          const imagePath = `.github/mockups/${story.id}/${safeName}.png`;
+          const imageUrl = await uploadMockupImage(
+            octokit, connection.owner, connection.repository,
+            imagePath, imageBuffer, defaultBranch,
+          );
+          mockupImageUrls.push({ title: m.title || `Screen ${i + 1}`, url: imageUrl });
+        } catch (imgErr: any) {
+          console.error(`[Mockup Screenshot Error] Screen ${i + 1}:`, imgErr.message);
+        }
+      }
+    } catch (err: any) {
+      console.error('[Mockup Upload Error]', err.message);
+    }
+  }
+
+  const body = buildIssueBody(story, mockupImageUrls);
 
   try {
-    const octokit = createOctokit(token);
+    // If issue already exists, UPDATE it instead of creating a new one
+    if (story.githubIssueNumber) {
+      const issue = await octokit.issues.update({
+        owner: connection.owner,
+        repo: connection.repository,
+        issue_number: story.githubIssueNumber,
+        title: title.length > 256 ? title.slice(0, 253) + '...' : title,
+        body,
+        labels,
+      });
+
+      await prisma.userStory.update({
+        where: { id: storyId },
+        data: {
+          githubIssueState: issue.data.state,
+        },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        issueNumber: issue.data.number,
+        issueUrl: issue.data.html_url,
+        title: issue.data.title,
+        updated: true,
+      });
+    }
+
+    // Otherwise create a new issue
     const issue = await octokit.issues.create({
       owner: connection.owner,
       repo: connection.repository,
@@ -130,18 +236,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
   }
 }
 
-function buildIssueBody(story: any): string {
+function buildIssueBody(story: any, mockupImages?: { title: string; url: string }[]): string {
   const sections: string[] = [];
 
   // User Story
-  sections.push(`## 📋 User Story\n\n> As a **${story.persona}**, I want to **${story.action}** so that **${story.benefit}**.\n\n- **Complexity:** \`${story.complexity}\`\n- **Feature:** ${story.feature.title}`);
+  sections.push(`## User Story\n\n> As a **${story.persona}**, I want to **${story.action}** so that **${story.benefit}**.\n\n- **Complexity:** \`${story.complexity}\`\n- **Feature:** ${story.feature.title}`);
+
+  // Mockup Screenshots
+  if (mockupImages && mockupImages.length > 0) {
+    let mockupSection = '## UI Mockups\n\n';
+    for (const img of mockupImages) {
+      mockupSection += `### ${img.title}\n\n![${img.title}](${img.url})\n\n`;
+    }
+    sections.push(mockupSection);
+  }
 
   // Requirements
   const reqs = story.requirements as any[];
   if (reqs && reqs.length > 0) {
     const funcReqs = reqs.filter(r => r.type === 'functional');
     const nonFuncReqs = reqs.filter(r => r.type === 'non-functional');
-    let reqSection = '## 📝 Requirements\n';
+    let reqSection = '## Requirements\n';
     if (funcReqs.length > 0) {
       reqSection += '\n### Functional\n' + funcReqs.map(r => `- [${r.priority?.toUpperCase() || 'MUST'}] ${r.description}`).join('\n');
     }
@@ -154,13 +269,13 @@ function buildIssueBody(story: any): string {
   // Acceptance Criteria
   const criteria = story.acceptanceCriteria as any;
   if (criteria && Array.isArray(criteria) && criteria.length > 0) {
-    sections.push('## ✅ Acceptance Criteria\n\n' + criteria.map((c: string, i: number) => `- [ ] ${c}`).join('\n'));
+    sections.push('## Acceptance Criteria\n\n' + criteria.map((c: string, i: number) => `- [ ] ${c}`).join('\n'));
   }
 
   // Gherkin Scenarios
   const gherkins = story.gherkinScenarios as any[];
   if (gherkins && gherkins.length > 0) {
-    let gherkinSection = '## 🧪 Test Scenarios (Gherkin)\n';
+    let gherkinSection = '## Test Scenarios (Gherkin)\n';
     for (const g of gherkins) {
       gherkinSection += `\n### ${g.title}\n\`\`\`gherkin\nGiven ${g.given}\nWhen ${g.when}\nThen ${g.then}\n\`\`\`\n`;
     }
