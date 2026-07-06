@@ -6,6 +6,62 @@ import { createOctokit } from '@/lib/github';
 import { cookies } from 'next/headers';
 
 /**
+ * GET /api/projects/[projectId]/github-issue?storyId=xxx
+ * 
+ * Syncs the GitHub issue state for a user story.
+ * Fetches the current state from GitHub and updates the database if changed.
+ */
+export async function GET(req: NextRequest, { params }: { params: Promise<{ projectId: string }> }) {
+  const { projectId } = await params;
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const storyId = req.nextUrl.searchParams.get('storyId');
+  if (!storyId) return NextResponse.json({ error: 'storyId is required' }, { status: 400 });
+
+  const story = await prisma.userStory.findUnique({ where: { id: storyId } });
+  if (!story || !story.githubIssueNumber) {
+    return NextResponse.json({ error: 'No linked GitHub issue' }, { status: 404 });
+  }
+
+  const connection = await prisma.gitHubConnection.findUnique({ where: { projectId } });
+  if (!connection) return NextResponse.json({ error: 'No GitHub repository connected' }, { status: 400 });
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get('github_access_token')?.value || connection.accessTokenEncrypted;
+  if (!token) return NextResponse.json({ error: 'GitHub token not found' }, { status: 401 });
+
+  try {
+    const octokit = createOctokit(token);
+    const { data: issue } = await octokit.issues.get({
+      owner: connection.owner,
+      repo: connection.repository,
+      issue_number: story.githubIssueNumber,
+    });
+
+    // Update if state changed
+    if (issue.state !== story.githubIssueState) {
+      await prisma.userStory.update({
+        where: { id: storyId },
+        data: { githubIssueState: issue.state },
+      });
+    }
+
+    return NextResponse.json({
+      issueNumber: issue.number,
+      issueUrl: issue.html_url,
+      state: issue.state,
+      title: issue.title,
+      labels: issue.labels.map((l: any) => typeof l === 'string' ? l : l.name),
+      updatedAt: issue.updated_at,
+    });
+  } catch (err: any) {
+    console.error('[GitHub Issue Sync]', err);
+    return NextResponse.json({ error: err.message || 'Failed to fetch issue' }, { status: 500 });
+  }
+}
+
+/**
  * POST /api/projects/[projectId]/github-issue
  * 
  * Creates a GitHub issue from a fully-detailed user story.

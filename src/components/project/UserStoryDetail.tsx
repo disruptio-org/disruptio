@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -46,6 +46,26 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
     }
     return null;
   });
+
+  // Sync GitHub issue state on mount
+  useEffect(() => {
+    if (!initialStory.githubIssueNumber) return;
+    const syncIssue = async () => {
+      try {
+        const res = await fetch(`/api/projects/${project.id}/github-issue?storyId=${initialStory.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setIssueResult(prev => ({
+            ...prev,
+            url: data.issueUrl,
+            number: data.issueNumber,
+            state: data.state,
+          }));
+        }
+      } catch { /* silent — we already have cached data */ }
+    };
+    syncIssue();
+  }, [initialStory.id, initialStory.githubIssueNumber, project.id]);
 
   const apiUrl = `/api/projects/${project.id}/features/${story.featureId}/stories/${story.id}`;
   const agents: { id: string; name: string; agentType: string }[] = project.agents || [];
