@@ -336,18 +336,74 @@ export default function GitHubContent({ project }: { project: any }) {
             </div>
           )}
 
-          {/* Repository Knowledge Status */}
+          {/* Repository Knowledge — Stored Data (persisted) */}
           {project.repositoryKnowledge && !deepScanResult && (
             <div className="ds-card" style={{ borderColor: '#FF2A2A22' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ECC71' }} />
-                <div className="ds-label">REPOSITORY KNOWLEDGE ACTIVE</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#2ECC71' }} />
+                <div className="ds-label" style={{ color: '#2ECC71' }}>
+                  {project.repositoryKnowledge.aiAnalysis ? 'AI-POWERED DEEP SCAN — STORED' : 'STRUCTURAL DEEP SCAN — STORED'}
+                </div>
                 <span style={{ fontSize: '10px', color: '#5A5A5A', marginLeft: 'auto' }}>
                   v{project.repositoryKnowledge.scanVersion} · Updated {new Date(project.repositoryKnowledge.updatedAt).toLocaleString()}
                 </span>
               </div>
-              <div style={{ fontSize: '11px', color: '#8A8A8A', lineHeight: 1.6 }}>
-                The repository has been analyzed. All agents can now use this knowledge for implementation planning, architecture analysis, and code-aware recommendations.
+
+              {/* Metrics */}
+              {project.repositoryKnowledge.architecture && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                  {[
+                    { label: 'TOTAL FILES', value: project.repositoryKnowledge.architecture.totalFiles, color: '#2ECC71' },
+                    { label: 'API ROUTES', value: project.repositoryKnowledge.architecture.apiRouteCount },
+                    { label: 'COMPONENTS', value: project.repositoryKnowledge.architecture.componentCount },
+                    { label: 'DB MODELS', value: project.repositoryKnowledge.databaseModels ? Object.keys(project.repositoryKnowledge.databaseModels).length : 0 },
+                  ].map((m) => (
+                    <div key={m.label} style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F' }}>
+                      <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em' }}>{m.label}</div>
+                      <div style={{ fontSize: '22px', color: m.color || '#FFFFFF', fontWeight: 700, marginTop: '6px' }}>{m.value}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* AI Analysis */}
+              {project.repositoryKnowledge.aiAnalysis && (
+                <div style={{ background: '#0D0D0D', padding: '18px', border: '1px solid #FF2A2A33', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.12em', marginBottom: '12px', fontWeight: 700 }}>
+                    AI ARCHITECTURAL ANALYSIS
+                  </div>
+                  <pre style={{
+                    fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.7,
+                    margin: 0, fontFamily: '"JetBrains Mono", monospace',
+                    maxHeight: '600px', overflow: 'auto',
+                  }}>
+                    {project.repositoryKnowledge.aiAnalysis}
+                  </pre>
+                </div>
+              )}
+
+              {/* Architecture summary (fallback if no AI) */}
+              {project.repositoryKnowledge.architectureSummary && !project.repositoryKnowledge.aiAnalysis && (
+                <div style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '8px' }}>ARCHITECTURE SUMMARY</div>
+                  <pre style={{ fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: 0, fontFamily: '"JetBrains Mono", monospace' }}>
+                    {project.repositoryKnowledge.architectureSummary}
+                  </pre>
+                </div>
+              )}
+
+              {/* Tech Stack */}
+              {project.repositoryKnowledge.techStackSummary && (
+                <div style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F' }}>
+                  <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '8px' }}>TECH STACK</div>
+                  <pre style={{ fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: 0, fontFamily: '"JetBrains Mono", monospace' }}>
+                    {project.repositoryKnowledge.techStackSummary}
+                  </pre>
+                </div>
+              )}
+
+              <div style={{ marginTop: '12px', fontSize: '11px', color: '#2ECC71' }}>
+                ✓ Repository knowledge stored. All agents can use this data for implementation planning and code-aware recommendations.
               </div>
             </div>
           )}

@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
     if (agentId && process.env.OPENAI_API_KEY) {
       try {
         // Load the selected agent
-        const agent = await prisma.projectAgent.findUnique({ where: { id: agentId } });
+        const agent = await prisma.agentConfiguration.findUnique({ where: { id: agentId } });
 
         // Build a comprehensive prompt with all scan data
         const fileList = knowledge.fileIndex
@@ -161,7 +161,8 @@ Be extremely detailed and specific. Reference actual file names, function names,
         testStructure: knowledge.testStructure,
         fileContents: knowledge.fileContents,
         techStackSummary: knowledge.techStackSummary,
-        architectureSummary: aiAnalysis || knowledge.architectureSummary,
+        architectureSummary: knowledge.architectureSummary,
+        aiAnalysis: aiAnalysis || undefined,
       },
       update: {
         scanVersion: { increment: 1 },
@@ -175,7 +176,8 @@ Be extremely detailed and specific. Reference actual file names, function names,
         testStructure: knowledge.testStructure,
         fileContents: knowledge.fileContents,
         techStackSummary: knowledge.techStackSummary,
-        architectureSummary: aiAnalysis || knowledge.architectureSummary,
+        architectureSummary: knowledge.architectureSummary,
+        aiAnalysis: aiAnalysis || undefined,
       },
     });
 

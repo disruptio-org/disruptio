@@ -246,6 +246,7 @@ model RepositoryKnowledge {
   // Computed summaries
   techStackSummary    String?
   architectureSummary String?
+  aiAnalysis          String?   @db.Text
 
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
