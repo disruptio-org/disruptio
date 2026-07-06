@@ -38,6 +38,10 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // GitHub Issue state
+  const [creatingIssue, setCreatingIssue] = useState(false);
+  const [issueResult, setIssueResult] = useState<{ url?: string; number?: number; error?: string } | null>(null);
+
   const apiUrl = `/api/projects/${project.id}/features/${story.featureId}/stories/${story.id}`;
   const agents: { id: string; name: string; agentType: string }[] = project.agents || [];
 
@@ -721,11 +725,56 @@ ${storyContext}`,
           <span style={{ padding: '2px 10px', fontSize: '10px', letterSpacing: '.1em', border: `1px solid ${COMPLEXITY_COLORS[story.complexity] || '#6A6A6A'}`, color: COMPLEXITY_COLORS[story.complexity] || '#6A6A6A' }}>
             {story.complexity.toUpperCase()}
           </span>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {issueResult?.url && (
+              <a
+                href={issueResult.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: '10px', color: '#2ECC71', letterSpacing: '.1em', textDecoration: 'none', border: '1px solid #2ECC7144', padding: '4px 12px' }}
+              >
+                ✓ ISSUE #{issueResult.number}
+              </a>
+            )}
+            <button
+              className="ds-btn-primary ds-btn-sm"
+              disabled={creatingIssue}
+              onClick={async () => {
+                setCreatingIssue(true);
+                setIssueResult(null);
+                try {
+                  const res = await fetch(`/api/projects/${project.id}/github-issue`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ storyId: story.id }),
+                  });
+                  const data = await res.json();
+                  if (res.ok) {
+                    setIssueResult({ url: data.issueUrl, number: data.issueNumber });
+                    setStory((prev: any) => ({ ...prev, status: 'ready' }));
+                  } else {
+                    setIssueResult({ error: data.error || 'Failed to create issue' });
+                  }
+                } catch (err: any) {
+                  setIssueResult({ error: err.message || 'Network error' });
+                }
+                setCreatingIssue(false);
+              }}
+              style={{ letterSpacing: '.1em', whiteSpace: 'nowrap' }}
+            >
+              {creatingIssue ? '[ CREATING... ]' : '[ CREATE GITHUB ISSUE ]'}
+            </button>
+          </div>
         </div>
         {/* Save indicator */}
         {(saving || saved) && (
           <div style={{ marginTop: '8px', fontSize: '10px', letterSpacing: '.1em', color: saving ? '#F39C12' : '#2ECC71' }}>
             {saving ? '● SAVING...' : '● SAVED'}
+          </div>
+        )}
+        {issueResult?.error && (
+          <div style={{ marginTop: '8px', fontSize: '10px', letterSpacing: '.1em', color: '#FF2A2A' }}>
+            ✕ {issueResult.error}
           </div>
         )}
       </div>
