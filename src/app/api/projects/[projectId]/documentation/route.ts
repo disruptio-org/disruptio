@@ -239,13 +239,16 @@ Generate the complete document in markdown format. Use proper headers (##, ###),
     const client = createProjectClient(project);
     const model = project.aiModel || 'gpt-4o';
 
+    // Some models (o1, o3) don't support temperature
+    const supportsTemperature = !model.startsWith('o1') && !model.startsWith('o3');
+
     const completion = await client.chat.completions.create({
       model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
       ],
-      temperature: 0.3,
+      ...(supportsTemperature ? { temperature: 0.3 } : {}),
       max_completion_tokens: 8192,
     });
 
