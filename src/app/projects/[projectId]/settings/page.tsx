@@ -3,92 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { AI_PROVIDERS } from '@/lib/ai-providers';
 
-const PROVIDERS = [
-  {
-    id: 'openai', name: 'OpenAI', models: [
-      // GPT-5 family (current flagship)
-      'gpt-5.5', 'gpt-5.5-pro',
-      'gpt-5.4-mini', 'gpt-5.4-nano',
-      // GPT-4 family (legacy, still available)
-      'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano',
-      'gpt-4o', 'gpt-4o-mini',
-      'gpt-4-turbo', 'gpt-4',
-      // Reasoning models
-      'o4-mini', 'o3', 'o3-mini',
-      'o1', 'o1-mini', 'o1-preview',
-      // Legacy
-      'gpt-3.5-turbo',
-    ],
-  },
-  {
-    id: 'anthropic', name: 'Anthropic', models: [
-      // Mythos-class (current frontier)
-      'claude-fable-5', 'claude-mythos-5',
-      // Current generation
-      'claude-sonnet-5',
-      'claude-opus-4.8', 'claude-opus-4',
-      'claude-sonnet-4-20250514',
-      'claude-haiku-4.5',
-      // Previous generation
-      'claude-3.5-sonnet', 'claude-3.5-haiku',
-      'claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku',
-    ],
-  },
-  {
-    id: 'google', name: 'Google AI (Gemini)', models: [
-      // Gemini 3 family (current frontier)
-      'gemini-3.5-pro', 'gemini-3.5-flash',
-      'gemini-3.1-pro', 'gemini-3.1-flash-lite',
-      // Gemini 2.5 family (proven/stable)
-      'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite',
-      // Legacy
-      'gemini-2.0-flash',
-      'gemini-1.5-pro', 'gemini-1.5-flash',
-    ],
-  },
-  {
-    id: 'azure', name: 'Azure OpenAI', models: [
-      'gpt-5.5', 'gpt-5.5-pro',
-      'gpt-4.1', 'gpt-4.1-mini',
-      'gpt-4o', 'gpt-4o-mini',
-      'gpt-4-turbo', 'gpt-4',
-      'gpt-3.5-turbo',
-    ],
-  },
-  {
-    id: 'ollama', name: 'Ollama (Local)', models: [
-      'llama3.3', 'llama3.2', 'llama3.1', 'llama3',
-      'mistral', 'mixtral',
-      'codellama', 'deepseek-coder-v2',
-      'phi4', 'phi3', 'gemma2', 'qwen2.5',
-      'command-r',
-    ],
-  },
-  {
-    id: 'deepseek', name: 'DeepSeek', models: [
-      // V4 family (current)
-      'deepseek-v4-pro', 'deepseek-v4-flash',
-      // Legacy aliases (deprecating July 2026)
-      'deepseek-chat', 'deepseek-reasoner',
-      // Open-source
-      'deepseek-r1', 'deepseek-v3',
-    ],
-  },
-  {
-    id: 'xai', name: 'xAI (Grok)', models: [
-      'grok-3', 'grok-3-mini',
-      'grok-2', 'grok-2-mini',
-    ],
-  },
-  {
-    id: 'mistral', name: 'Mistral AI', models: [
-      'mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest',
-      'codestral-latest', 'pixtral-large-latest',
-      'open-mistral-nemo',
-    ],
-  },
-];
+const PROVIDERS = AI_PROVIDERS;
 
 export default function SettingsPage() {
   const router = useRouter();

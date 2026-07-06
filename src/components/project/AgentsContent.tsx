@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { AI_PROVIDERS, getModelsForProvider } from '@/lib/ai-providers';
 
 interface DiagnosticResult {
   runId: string;
@@ -53,15 +54,41 @@ export default function AgentsContent({ project }: { project: any }) {
     setChatLoading((p) => ({ ...p, [agentId]: false }));
   };
 
-  // Create agent state
+  // Create/Edit agent state
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [newAgent, setNewAgent] = useState({
+  const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
+  const emptyAgent = {
     name: '', agentType: '', description: '', systemInstructions: '',
     allowedContext: [] as string[], model: 'gpt-4', temperature: 0.3,
-  });
+  };
+  const [newAgent, setNewAgent] = useState({ ...emptyAgent });
 
   const CONTEXT_OPTIONS = ['Product Context', 'Tech View', 'GitHub Repo', 'Repository Knowledge', 'Personas', 'UX/UI Rules', 'Design Style', 'Features'];
+
+  // Determine available models from the project's configured provider
+  const projectProvider = project.aiProvider || 'openai';
+  const availableModels = getModelsForProvider(projectProvider);
+
+  const openEditForm = (agent: any) => {
+    setEditingAgentId(agent.id);
+    setNewAgent({
+      name: agent.name || '',
+      agentType: agent.agentType || '',
+      description: agent.description || '',
+      systemInstructions: agent.systemInstructions || '',
+      allowedContext: Array.isArray(agent.allowedContext) ? [...agent.allowedContext] : [],
+      model: agent.model || 'gpt-4',
+      temperature: agent.temperature ?? 0.3,
+    });
+    setShowCreate(true);
+  };
+
+  const closeForm = () => {
+    setShowCreate(false);
+    setEditingAgentId(null);
+    setNewAgent({ ...emptyAgent });
+  };
 
   const createAgent = async () => {
     if (!newAgent.name.trim() || !newAgent.agentType.trim() || creating) return;
@@ -75,8 +102,33 @@ export default function AgentsContent({ project }: { project: any }) {
       if (res.ok) {
         const agent = await res.json();
         setAgents((prev: any[]) => [...prev, { ...agent, open: false }]);
-        setNewAgent({ name: '', agentType: '', description: '', systemInstructions: '', allowedContext: [], model: 'gpt-4', temperature: 0.3 });
-        setShowCreate(false);
+        closeForm();
+      }
+    } catch { /* */ }
+    setCreating(false);
+  };
+
+  const updateAgent = async () => {
+    if (!editingAgentId || !newAgent.name.trim() || creating) return;
+    setCreating(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/agents?agentId=${editingAgentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newAgent.name,
+          agentType: newAgent.agentType,
+          description: newAgent.description,
+          systemInstructions: newAgent.systemInstructions,
+          allowedContext: newAgent.allowedContext,
+          model: newAgent.model,
+          temperature: newAgent.temperature,
+        }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setAgents((prev: any[]) => prev.map((a: any) => a.id === editingAgentId ? { ...a, ...updated, open: a.open } : a));
+        closeForm();
       }
     } catch { /* */ }
     setCreating(false);
@@ -199,13 +251,13 @@ export default function AgentsContent({ project }: { project: any }) {
           <div className="ds-section-title">AGENTS</div>
           <div style={{ marginTop: '8px', fontSize: '12px', color: '#6A6A6A' }}>Activation console. Each agent compiles its context sources into a system prompt at run time. Run diagnostics to evaluate context health.</div>
         </div>
-        <button className="ds-btn-primary ds-btn-sm" onClick={() => setShowCreate(true)} style={{ letterSpacing: '.1em' }}>[ + NEW AGENT ]</button>
+        <button className="ds-btn-primary ds-btn-sm" onClick={() => { setEditingAgentId(null); setNewAgent({ ...emptyAgent }); setShowCreate(true); }} style={{ letterSpacing: '.1em' }}>[ + NEW AGENT ]</button>
       </div>
 
       {/* Create Agent Form */}
       {showCreate && (
         <div className="ds-card" style={{ animation: 'dsFadeIn .2s ease-out', borderColor: '#FF2A2A33' }}>
-          <div className="ds-label" style={{ marginBottom: '14px', color: '#FF2A2A' }}>CREATE CUSTOM AGENT</div>
+          <div className="ds-label" style={{ marginBottom: '14px', color: '#FF2A2A' }}>{editingAgentId ? 'EDIT AGENT' : 'CREATE CUSTOM AGENT'}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
@@ -214,7 +266,7 @@ export default function AgentsContent({ project }: { project: any }) {
               </div>
               <div>
                 <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>AGENT TYPE (CODE)</div>
-                <input className="ds-input" style={{ width: '100%' }} value={newAgent.agentType} onChange={(e) => setNewAgent({ ...newAgent, agentType: e.target.value })} placeholder="e.g. security-auditor" />
+                <input className="ds-input" style={{ width: '100%' }} value={newAgent.agentType} onChange={(e) => setNewAgent({ ...newAgent, agentType: e.target.value })} placeholder="e.g. security-auditor" disabled={!!editingAgentId} />
               </div>
             </div>
             <div>
@@ -240,13 +292,11 @@ export default function AgentsContent({ project }: { project: any }) {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>MODEL</div>
-                <select className="ds-input" style={{ width: '100%', appearance: 'none', cursor: 'pointer' }} value={newAgent.model} onChange={(e) => setNewAgent({ ...newAgent, model: e.target.value })}>
-                  <option value="gpt-4">GPT-4</option>
-                  <option value="gpt-4o">GPT-4o</option>
-                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                  <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-                  <option value="gemini-pro">Gemini Pro</option>
+                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>MODEL <span style={{ color: '#3A3A3A' }}>({AI_PROVIDERS.find(p => p.id === projectProvider)?.name || projectProvider})</span></div>
+                <select className="ds-input" style={{ width: '100%', cursor: 'pointer' }} value={newAgent.model} onChange={(e) => setNewAgent({ ...newAgent, model: e.target.value })}>
+                  {availableModels.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -255,10 +305,10 @@ export default function AgentsContent({ project }: { project: any }) {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-              <button className="ds-btn-primary ds-btn-sm" onClick={createAgent} disabled={creating || !newAgent.name.trim() || !newAgent.agentType.trim()}>
-                {creating ? 'CREATING...' : '[ CREATE AGENT ]'}
+              <button className="ds-btn-primary ds-btn-sm" onClick={editingAgentId ? updateAgent : createAgent} disabled={creating || !newAgent.name.trim() || (!editingAgentId && !newAgent.agentType.trim())}>
+                {creating ? 'SAVING...' : editingAgentId ? '[ SAVE CHANGES ]' : '[ CREATE AGENT ]'}
               </button>
-              <button className="ds-btn-ghost ds-btn-sm" onClick={() => setShowCreate(false)}>CANCEL</button>
+              <button className="ds-btn-ghost ds-btn-sm" onClick={closeForm}>CANCEL</button>
             </div>
           </div>
         </div>
@@ -418,7 +468,7 @@ export default function AgentsContent({ project }: { project: any }) {
                     </span>
                   ) : 'No diagnostics'}
                 </span>
-                <button className="ds-btn-ghost ds-btn-sm" onClick={() => toggleDrawer(agent.id)}>{agent.open ? 'COLLAPSE' : 'CONFIGURE'}</button>
+                <button className="ds-btn-ghost ds-btn-sm" onClick={() => { if (agent.open) { toggleDrawer(agent.id); } else { openEditForm(agent); } }}>{agent.open ? 'COLLAPSE' : 'CONFIGURE'}</button>
               </div>
               {agent.open && (
                 <div style={{ borderTop: '1px solid #161616', background: '#0D0D0D', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
