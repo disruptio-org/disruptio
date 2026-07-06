@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
 /**
  * Renders markdown-like text as styled HTML with Mermaid diagram support.
@@ -8,6 +8,12 @@ import { useEffect, useRef, useCallback } from 'react';
  */
 export default function MarkdownRenderer({ content, className }: { content: string; className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const [fullscreenDiagram, setFullscreenDiagram] = useState<{ svg: string; id: string } | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   // Render mermaid diagrams after mount
   const renderMermaid = useCallback(async () => {
@@ -64,6 +70,14 @@ export default function MarkdownRenderer({ content, className }: { content: stri
           div.innerHTML = svg;
           div.classList.remove('mermaid-source');
           div.classList.add('mermaid-rendered');
+          
+          // Make it clickable for fullscreen
+          div.style.cursor = 'zoom-in';
+          div.onclick = () => {
+            setFullscreenDiagram({ svg, id });
+            setZoom(1);
+            setPosition({ x: 0, y: 0 });
+          };
         } catch (e) {
           // Show the raw code if mermaid can't parse it
           div.innerHTML = `<pre style="color:#FF2A2A;font-size:10px;padding:12px;background:#1A0808;border:1px solid #FF2A2A33">${code}</pre>`;
@@ -73,6 +87,30 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       // mermaid not available, show raw
     }
   }, []);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!fullscreenDiagram) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!fullscreenDiagram) return;
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    setZoom(prev => Math.max(0.1, Math.min(10, prev * delta)));
+  };
 
   useEffect(() => {
     renderMermaid();
@@ -404,6 +442,79 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       fontFamily: '"JetBrains Mono", monospace',
     }}>
       {elements}
+
+      {/* Fullscreen Interactive Diagram Modal */}
+      {fullscreenDiagram && (
+        <div 
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(10px)',
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden', cursor: isDragging ? 'grabbing' : 'default',
+          }}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
+          {/* Header Controls */}
+          <div style={{
+            padding: '16px 24px', display: 'flex', justifyContent: 'space-between',
+            alignItems: 'center', borderBottom: '1px solid #1F1F1F',
+            background: '#0D0D0D', zIndex: 10001,
+          }}>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+              <span style={{ color: '#FF2A2A', fontWeight: 700, letterSpacing: '.1em', fontSize: '12px' }}>INTERACTIVE DIAGRAM VIEW</span>
+              <div style={{ height: '12px', width: '1px', background: '#2A2A2A' }} />
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button 
+                  onClick={() => setZoom(prev => prev * 1.2)}
+                  style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#E8E8E8', padding: '4px 10px', fontSize: '10px', cursor: 'pointer' }}
+                >
+                  ZOOM +
+                </button>
+                <button 
+                  onClick={() => setZoom(prev => prev * 0.8)}
+                  style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#E8E8E8', padding: '4px 10px', fontSize: '10px', cursor: 'pointer' }}
+                >
+                  ZOOM -
+                </button>
+                <button 
+                  onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}
+                  style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#E8E8E8', padding: '4px 10px', fontSize: '10px', cursor: 'pointer' }}
+                >
+                  RESET VIEW
+                </button>
+              </div>
+              <div style={{ fontSize: '10px', color: '#5A5A5A', marginLeft: '8px' }}>
+                SCROLL TO ZOOM • DRAG TO PAN
+              </div>
+            </div>
+            <button 
+              onClick={() => setFullscreenDiagram(null)}
+              style={{ background: '#FF2A2A', border: 'none', color: '#FFFFFF', padding: '6px 16px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', letterSpacing: '.05em' }}
+            >
+              [ CLOSE ]
+            </button>
+          </div>
+
+          {/* Canvas Area */}
+          <div 
+            style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onMouseDown={handleMouseDown}
+            onWheel={handleWheel}
+          >
+            <div 
+              style={{
+                transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+                transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                width: '100%', height: '100%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+              dangerouslySetInnerHTML={{ __html: fullscreenDiagram.svg }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
