@@ -18,6 +18,9 @@ const TABS = [
   { key: 'mockups', label: 'MOCKUPS', num: '05' },
   { key: 'techreview', label: 'TECH REVIEW', num: '06' },
   { key: 'planning', label: 'PLANNING', num: '07' },
+  { key: 'development', label: 'DEVELOPMENT', num: '08' },
+  { key: 'codereview', label: 'CODE REVIEW', num: '09' },
+  { key: 'ship', label: 'SHIP', num: '10' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -743,7 +746,7 @@ ${storyContext}`,
           )}
           {generatingMockup && (
             <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
               <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>{generatingProgress || 'GENERATING MOCKUP...'}</span>
             </div>
           )}
@@ -1248,6 +1251,414 @@ ${storyContext}`,
     );
   };
 
+  // --- TAB 8: DEVELOPMENT ---
+  const DevelopmentTab = () => {
+    const [devData, setDevData] = useState<any>(null);
+    const [checkData, setCheckData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+      if (!story.githubIssueNumber) { setLoading(false); return; }
+      (async () => {
+        try {
+          const res = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=development`);
+          const data = await res.json();
+          if (res.ok) {
+            setDevData(data);
+            // Sync PR data to story state so Code Review and Ship tabs can use it
+            if (data.pullRequests?.[0]) {
+              const pr = data.pullRequests[0];
+              setStory((prev: any) => ({
+                ...prev,
+                githubPrNumber: pr.number,
+                githubPrState: pr.state,
+                githubPrUrl: pr.url,
+                githubBranch: pr.branch,
+              }));
+              // Also fetch checks
+              const checksRes = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=checks&prNumber=${pr.number}`);
+              const checksJson = await checksRes.json();
+              if (checksRes.ok) setCheckData(checksJson);
+            }
+          } else { setError(data.error); }
+        } catch (e: any) { setError(e.message); }
+        setLoading(false);
+      })();
+    }, [story.id, story.githubIssueNumber]);
+
+    if (!story.githubIssueNumber) return (
+      <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
+        <div style={{ fontSize: '12px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>NO GITHUB ISSUE LINKED</div>
+        <div style={{ fontSize: '11px', color: '#3A3A3A' }}>Create a GitHub issue first from the Planning tab to track development.</div>
+      </div>
+    );
+    if (loading) return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '20px' }}>
+        <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
+        <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>LOADING DEVELOPMENT DATA...</span>
+      </div>
+    );
+    if (error) return <div style={{ padding: '20px', fontSize: '11px', color: '#FF2A2A' }}>{error}</div>;
+
+    const pr = devData?.pullRequests?.[0];
+    const PR_STATE_COLORS: Record<string, string> = { open: '#2ECC71', merged: '#8B5CF6', closed: '#FF2A2A', draft: '#6A6A6A' };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Branch + PR Row */}
+        <div style={{ display: 'flex', gap: '16px' }}>
+          {/* Branch Card */}
+          <div className="ds-card" style={{ flex: 1, padding: '20px' }}>
+            <div className="ds-label" style={{ marginBottom: '12px' }}>BRANCH</div>
+            {devData?.branch ? (
+              <>
+                <div style={{ fontSize: '13px', color: '#FFFFFF', fontFamily: 'JetBrains Mono', marginBottom: '8px' }}>{devData.branch}</div>
+                {pr && (
+                  <div style={{ fontSize: '10px', color: '#5A5A5A' }}>
+                    {pr.commits.length} commits · into {pr.baseBranch}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ fontSize: '11px', color: '#3A3A3A' }}>No branch detected yet</div>
+            )}
+          </div>
+
+          {/* PR Card */}
+          <div className="ds-card" style={{ flex: 1, padding: '20px' }}>
+            <div className="ds-label" style={{ marginBottom: '12px' }}>PULL REQUEST</div>
+            {pr ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '9px', letterSpacing: '.1em', padding: '2px 8px', border: `1px solid ${PR_STATE_COLORS[pr.state] || '#5A5A5A'}`, color: PR_STATE_COLORS[pr.state] || '#5A5A5A' }}>
+                    {pr.state.toUpperCase()}
+                  </span>
+                  <a href={pr.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#FFFFFF', textDecoration: 'none', borderBottom: '1px solid #2A2A2A' }}>
+                    PR #{pr.number}
+                  </a>
+                </div>
+                <div style={{ fontSize: '11px', color: '#B3B3B3', marginBottom: '8px' }}>{pr.title}</div>
+                <div style={{ fontSize: '10px', color: '#5A5A5A' }}>
+                  <span style={{ color: '#2ECC71' }}>+{pr.additions}</span> <span style={{ color: '#FF2A2A' }}>-{pr.deletions}</span> · {pr.changedFiles} files
+                  {pr.authorAvatar && <img src={pr.authorAvatar} style={{ width: '16px', height: '16px', borderRadius: '50%', marginLeft: '8px', verticalAlign: 'middle' }} />}
+                  <span style={{ marginLeft: '4px' }}>@{pr.author}</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: '11px', color: '#3A3A3A' }}>No pull request linked yet</div>
+            )}
+          </div>
+        </div>
+
+        {/* CI/CD Checks */}
+        {checkData && checkData.checkRuns.length > 0 && (
+          <div className="ds-card" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div className="ds-label">CI/CD CHECKS</div>
+              <span style={{
+                fontSize: '9px', letterSpacing: '.1em', padding: '3px 10px',
+                background: checkData.summary.failed > 0 ? '#FF2A2A15' : checkData.summary.pending > 0 ? '#F39C1215' : '#2ECC7115',
+                border: `1px solid ${checkData.summary.failed > 0 ? '#FF2A2A33' : checkData.summary.pending > 0 ? '#F39C1233' : '#2ECC7133'}`,
+                color: checkData.summary.failed > 0 ? '#FF2A2A' : checkData.summary.pending > 0 ? '#F39C12' : '#2ECC71',
+              }}>
+                {checkData.summary.failed > 0 ? `${checkData.summary.failed} FAILING` : checkData.summary.pending > 0 ? `${checkData.summary.pending} PENDING` : 'ALL PASSED'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {checkData.checkRuns.map((cr: any) => (
+                <div key={cr.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#0A0A0A', border: '1px solid #1A1A1A' }}>
+                  <span style={{ fontSize: '12px' }}>
+                    {cr.conclusion === 'success' ? '✓' : cr.conclusion === 'failure' ? '✗' : cr.status === 'in_progress' ? '◎' : '○'}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#B3B3B3', flex: 1 }}>{cr.name}</span>
+                  <span style={{
+                    fontSize: '9px', letterSpacing: '.08em',
+                    color: cr.conclusion === 'success' ? '#2ECC71' : cr.conclusion === 'failure' ? '#FF2A2A' : '#F39C12',
+                  }}>
+                    {cr.conclusion ? cr.conclusion.toUpperCase() : cr.status.toUpperCase()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recent Commits */}
+        {pr && pr.commits.length > 0 && (
+          <div className="ds-card" style={{ padding: '20px' }}>
+            <div className="ds-label" style={{ marginBottom: '12px' }}>RECENT COMMITS ({pr.commits.length})</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {pr.commits.slice(0, 15).map((c: any, i: number) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 12px', background: i % 2 === 0 ? '#0A0A0A' : 'transparent' }}>
+                  <span style={{ fontSize: '10px', color: '#FF2A2A', fontFamily: 'JetBrains Mono' }}>{c.sha}</span>
+                  <span style={{ fontSize: '11px', color: '#B3B3B3', flex: 1 }}>{c.message}</span>
+                  <span style={{ fontSize: '10px', color: '#5A5A5A' }}>{c.author}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* No activity state */}
+        {!pr && !devData?.branch && (
+          <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
+            <div style={{ fontSize: '11px', color: '#5A5A5A', letterSpacing: '.08em', lineHeight: 1.8 }}>
+              No development activity detected yet.<br />
+              Create a branch or PR that references issue #{story.githubIssueNumber} to track progress here.
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // --- TAB 9: CODE REVIEW ---
+  const CodeReviewTab = () => {
+    const [reviewData, setReviewData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+      const prNumber = story.githubPrNumber;
+      if (!prNumber) { setLoading(false); return; }
+      (async () => {
+        try {
+          const res = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=reviews&prNumber=${prNumber}`);
+          const data = await res.json();
+          if (res.ok) setReviewData(data); else setError(data.error);
+        } catch (e: any) { setError(e.message); }
+        setLoading(false);
+      })();
+    }, [story.id, story.githubPrNumber]);
+
+    const DECISION_COLORS: Record<string, { bg: string; border: string; text: string; label: string }> = {
+      approved: { bg: '#2ECC7115', border: '#2ECC7133', text: '#2ECC71', label: 'APPROVED' },
+      changes_requested: { bg: '#FF2A2A15', border: '#FF2A2A33', text: '#FF2A2A', label: 'CHANGES REQUESTED' },
+      pending: { bg: '#F39C1215', border: '#F39C1233', text: '#F39C12', label: 'PENDING REVIEW' },
+    };
+    const REVIEW_STATE_COLORS: Record<string, string> = { APPROVED: '#2ECC71', CHANGES_REQUESTED: '#FF2A2A', COMMENTED: '#F39C12', PENDING: '#6A6A6A', DISMISSED: '#5A5A5A' };
+
+    if (!story.githubPrNumber) return (
+      <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
+        <div style={{ fontSize: '12px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>NO PULL REQUEST LINKED</div>
+        <div style={{ fontSize: '11px', color: '#3A3A3A' }}>A pull request must be created and linked to the issue before code review can be tracked.</div>
+      </div>
+    );
+    if (loading) return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '20px' }}>
+        <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
+        <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>LOADING CODE REVIEW...</span>
+      </div>
+    );
+    if (error) return <div style={{ padding: '20px', fontSize: '11px', color: '#FF2A2A' }}>{error}</div>;
+
+    const dc = DECISION_COLORS[reviewData?.decision || 'pending'];
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Decision Banner */}
+        <div style={{ padding: '16px 20px', background: dc.bg, border: `1px solid ${dc.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '12px', letterSpacing: '.12em', color: dc.text, fontWeight: 700 }}>{dc.label}</div>
+          <div style={{ fontSize: '10px', color: '#5A5A5A' }}>
+            {reviewData?.reviews?.length || 0} review(s) · {reviewData?.comments?.length || 0} comment(s)
+          </div>
+        </div>
+
+        {/* Reviewers */}
+        {((reviewData?.reviews?.length > 0) || (reviewData?.requestedReviewers?.length > 0)) && (
+          <div className="ds-card" style={{ padding: '20px' }}>
+            <div className="ds-label" style={{ marginBottom: '12px' }}>REVIEWERS</div>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {reviewData.reviews.map((r: any, i: number) => (
+                <div key={i} style={{ padding: '12px 16px', background: '#0A0A0A', border: '1px solid #1A1A1A', display: 'flex', alignItems: 'center', gap: '10px', minWidth: '160px' }}>
+                  {r.avatar && <img src={r.avatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} />}
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#FFFFFF' }}>@{r.reviewer}</div>
+                    <div style={{ fontSize: '9px', letterSpacing: '.08em', color: REVIEW_STATE_COLORS[r.state] || '#5A5A5A', marginTop: '2px' }}>
+                      {r.state.replace(/_/g, ' ')}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {reviewData.requestedReviewers.map((r: any, i: number) => (
+                <div key={`req-${i}`} style={{ padding: '12px 16px', background: '#0A0A0A', border: '1px dashed #2A2A2A', display: 'flex', alignItems: 'center', gap: '10px', minWidth: '160px' }}>
+                  {r.avatar && <img src={r.avatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} />}
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#7A7A7A' }}>@{r.login}</div>
+                    <div style={{ fontSize: '9px', letterSpacing: '.08em', color: '#F39C12', marginTop: '2px' }}>AWAITING REVIEW</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Review Comments */}
+        {reviewData?.comments?.length > 0 && (
+          <div className="ds-card" style={{ padding: '20px' }}>
+            <div className="ds-label" style={{ marginBottom: '12px' }}>REVIEW COMMENTS ({reviewData.comments.length})</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {reviewData.comments.filter((c: any) => !c.inReplyToId).map((c: any) => {
+                const replies = reviewData.comments.filter((r: any) => r.inReplyToId === c.id);
+                return (
+                  <div key={c.id} style={{ border: '1px solid #1A1A1A', background: '#0A0A0A' }}>
+                    <div style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        {c.avatar && <img src={c.avatar} style={{ width: '18px', height: '18px', borderRadius: '50%' }} />}
+                        <span style={{ fontSize: '11px', color: '#FFFFFF' }}>@{c.author}</span>
+                        <span style={{ fontSize: '10px', color: '#FF2A2A', fontFamily: 'JetBrains Mono' }}>{c.path}:{c.line}</span>
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#B3B3B3', lineHeight: 1.6, paddingLeft: '26px' }}>{c.body}</div>
+                    </div>
+                    {replies.map((r: any) => (
+                      <div key={r.id} style={{ padding: '10px 16px 10px 42px', borderTop: '1px solid #1A1A1A', background: '#0D0D0D' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                          {r.avatar && <img src={r.avatar} style={{ width: '14px', height: '14px', borderRadius: '50%' }} />}
+                          <span style={{ fontSize: '10px', color: '#B3B3B3' }}>@{r.author}</span>
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#7A7A7A', lineHeight: 1.5 }}>{r.body}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* No reviews yet */}
+        {(!reviewData?.reviews?.length && !reviewData?.requestedReviewers?.length && !reviewData?.comments?.length) && (
+          <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
+            <div style={{ fontSize: '11px', color: '#5A5A5A', letterSpacing: '.08em' }}>No reviews submitted yet.</div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // --- TAB 10: SHIP ---
+  const ShipTab = () => {
+    const [shipData, setShipData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+      const prNumber = story.githubPrNumber;
+      if (!prNumber) { setLoading(false); return; }
+      (async () => {
+        try {
+          const res = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=ship&prNumber=${prNumber}`);
+          const data = await res.json();
+          if (res.ok) setShipData(data); else setError(data.error);
+        } catch (e: any) { setError(e.message); }
+        setLoading(false);
+      })();
+    }, [story.id, story.githubPrNumber]);
+
+    if (!story.githubPrNumber) return (
+      <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
+        <div style={{ fontSize: '12px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>NO PULL REQUEST LINKED</div>
+        <div style={{ fontSize: '11px', color: '#3A3A3A' }}>A pull request must exist before tracking ship status.</div>
+      </div>
+    );
+    if (loading) return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '20px' }}>
+        <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
+        <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>LOADING SHIP STATUS...</span>
+      </div>
+    );
+    if (error) return <div style={{ padding: '20px', fontSize: '11px', color: '#FF2A2A' }}>{error}</div>;
+
+    const merge = shipData?.merge;
+    const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Merge Status */}
+        <div className="ds-card" style={{ padding: '20px' }}>
+          <div className="ds-label" style={{ marginBottom: '12px' }}>MERGE STATUS</div>
+          {merge?.merged ? (
+            <div style={{ padding: '16px', background: '#8B5CF610', border: '1px solid #8B5CF633' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px', letterSpacing: '.1em', color: '#8B5CF6', fontWeight: 700 }}>MERGED</span>
+                {merge.mergedBy?.avatar && <img src={merge.mergedBy.avatar} style={{ width: '20px', height: '20px', borderRadius: '50%' }} />}
+                <span style={{ fontSize: '11px', color: '#B3B3B3' }}>by @{merge.mergedBy?.login}</span>
+              </div>
+              <div style={{ fontSize: '10px', color: '#5A5A5A' }}>
+                {merge.branch} → {merge.baseBranch} · {fmtDate(merge.mergedAt)}
+              </div>
+              <div style={{ fontSize: '10px', color: '#5A5A5A', marginTop: '4px' }}>
+                {merge.commits} commits · <span style={{ color: '#2ECC71' }}>+{merge.additions}</span> <span style={{ color: '#FF2A2A' }}>-{merge.deletions}</span>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: '16px', background: '#F39C1210', border: '1px solid #F39C1233' }}>
+              <div style={{ fontSize: '12px', letterSpacing: '.1em', color: '#F39C12', fontWeight: 700 }}>NOT MERGED</div>
+              <div style={{ fontSize: '10px', color: '#5A5A5A', marginTop: '4px' }}>Pull request is still open. Merge to complete this story.</div>
+            </div>
+          )}
+        </div>
+
+        {/* Deployments */}
+        {shipData?.deployments?.length > 0 && (
+          <div className="ds-card" style={{ padding: '20px' }}>
+            <div className="ds-label" style={{ marginBottom: '12px' }}>DEPLOYMENTS</div>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {shipData.deployments.map((d: any) => {
+                const colors: Record<string, string> = { success: '#2ECC71', active: '#2ECC71', failure: '#FF2A2A', error: '#FF2A2A', pending: '#F39C12', inactive: '#5A5A5A', in_progress: '#F39C12' };
+                const c = colors[d.status] || '#5A5A5A';
+                return (
+                  <div key={d.id} style={{ padding: '14px 18px', background: '#0A0A0A', border: '1px solid #1A1A1A', minWidth: '180px' }}>
+                    <div style={{ fontSize: '11px', color: '#FFFFFF', fontWeight: 600, marginBottom: '6px' }}>{d.environment.toUpperCase()}</div>
+                    <div style={{ fontSize: '9px', letterSpacing: '.08em', color: c, marginBottom: '4px' }}>{d.status.toUpperCase()}</div>
+                    <div style={{ fontSize: '10px', color: '#5A5A5A' }}>{fmtDate(d.createdAt)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Lifecycle Timeline */}
+        <div className="ds-card" style={{ padding: '20px' }}>
+          <div className="ds-label" style={{ marginBottom: '16px' }}>LIFECYCLE TIMELINE</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0', paddingLeft: '16px', borderLeft: '2px solid #1F1F1F' }}>
+            {/* Static events from story data */}
+            {story.createdAt && (
+              <TimelineEntry icon="●" color="#5A5A5A" label="Story created" date={fmtDate(story.createdAt)} />
+            )}
+            {story.githubIssueUrl && (
+              <TimelineEntry icon="●" color="#FF2A2A" label={`Issue #${story.githubIssueNumber} created`} date="" />
+            )}
+            {shipData?.merge?.branch && (
+              <TimelineEntry icon="●" color="#2ECC71" label={`Branch: ${merge.branch}`} date="" />
+            )}
+            {story.githubPrUrl && (
+              <TimelineEntry icon="●" color="#2ECC71" label={`PR #${story.githubPrNumber} opened`} date="" />
+            )}
+            {merge?.merged ? (
+              <TimelineEntry icon="●" color="#8B5CF6" label={`PR merged by @${merge.mergedBy?.login}`} date={fmtDate(merge.mergedAt)} />
+            ) : (
+              <TimelineEntry icon="○" color="#3A3A3A" label="PR merge — pending" date="" />
+            )}
+            {shipData?.deployments?.map((d: any) => (
+              <TimelineEntry key={d.id} icon="●" color={d.status === 'success' || d.status === 'active' ? '#2ECC71' : '#F39C12'} label={`Deployed to ${d.environment}`} date={fmtDate(d.createdAt)} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const TimelineEntry = ({ icon, color, label, date }: { icon: string; color: string; label: string; date: string }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', marginLeft: '-22px' }}>
+      <span style={{ fontSize: '10px', color, width: '16px', textAlign: 'center' }}>{icon}</span>
+      <span style={{ fontSize: '11px', color: '#B3B3B3', flex: 1 }}>{label}</span>
+      {date && <span style={{ fontSize: '10px', color: '#5A5A5A' }}>{date}</span>}
+    </div>
+  );
+
   const tabContent: Record<TabKey, () => React.ReactNode> = {
     story: StoryTab,
     requirements: RequirementsTab,
@@ -1256,6 +1667,9 @@ ${storyContext}`,
     mockups: MockupsTab,
     techreview: TechReviewTab,
     planning: PlanningTab,
+    development: DevelopmentTab,
+    codereview: CodeReviewTab,
+    ship: ShipTab,
   };
 
   const ActiveContent = tabContent[activeTab];
@@ -1375,7 +1789,7 @@ ${storyContext}`,
       </div>
 
       {/* Tab Pipeline */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #1F1F1F' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid #1F1F1F', overflowX: 'auto', scrollbarWidth: 'none' }}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
           return (
@@ -1384,6 +1798,7 @@ ${storyContext}`,
               onClick={() => handleTabChange(tab.key)}
               style={{
                 flex: 1,
+                minWidth: '110px',
                 padding: '14px 0',
                 background: 'transparent',
                 border: 'none',
@@ -1397,6 +1812,7 @@ ${storyContext}`,
                 justifyContent: 'center',
                 gap: '8px',
                 transition: 'all .15s ease',
+                whiteSpace: 'nowrap',
               }}
             >
               <span style={{ fontSize: '9px', color: isActive ? '#FF2A2A' : '#3A3A3A', fontFamily: '"JetBrains Mono", monospace' }}>{tab.num}</span>
