@@ -530,6 +530,7 @@ ${storyContext}`,
     const [editHtmlValue, setEditHtmlValue] = useState('');
     const [fullscreen, setFullscreen] = useState(false);
     const [viewportSize, setViewportSize] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const mockups: any[] = story.mockups || [];
 
     const mockupsApiUrl = `/api/projects/${project.id}/features/${story.featureId}/stories/${story.id}/mockups`;
@@ -856,7 +857,7 @@ ${storyContext}`,
                     {editingHtml ? 'CLOSE EDITOR' : 'EDIT HTML'}
                   </button>
                   <button
-                    onClick={() => { if (confirm('Delete this mockup screen?')) deleteMockup(currentMockup.id); }}
+                    onClick={() => setConfirmDeleteId(currentMockup.id)}
                     style={{
                       fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
                       background: 'transparent', border: '1px solid #FF2A2A33', color: '#FF2A2A',
@@ -865,6 +866,47 @@ ${storyContext}`,
                     DELETE
                   </button>
                 </div>
+
+                {/* Delete Confirmation Modal */}
+                {confirmDeleteId && (
+                  <div style={{
+                    position: 'fixed', inset: 0, zIndex: 10001,
+                    background: 'rgba(0,0,0,0.7)', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <div style={{
+                      background: '#0D0D0D', border: '1px solid #1F1F1F',
+                      padding: '28px 32px', maxWidth: '400px', width: '90%',
+                    }}>
+                      <div style={{ fontSize: '12px', letterSpacing: '.1em', color: '#FFFFFF', fontWeight: 700, marginBottom: '12px' }}>
+                        DELETE MOCKUP SCREEN
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#B3B3B3', lineHeight: 1.6, marginBottom: '24px' }}>
+                        Are you sure you want to delete this mockup screen? This action cannot be undone.
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          style={{
+                            fontSize: '10px', letterSpacing: '.08em', padding: '8px 20px',
+                            background: 'transparent', border: '1px solid #2A2A2A', color: '#B3B3B3', cursor: 'pointer',
+                          }}
+                        >
+                          CANCEL
+                        </button>
+                        <button
+                          onClick={() => { deleteMockup(confirmDeleteId); setConfirmDeleteId(null); }}
+                          style={{
+                            fontSize: '10px', letterSpacing: '.08em', padding: '8px 20px', fontWeight: 700,
+                            background: '#FF2A2A', border: 'none', color: '#000', cursor: 'pointer',
+                          }}
+                        >
+                          [ DELETE ]
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* HTML Editor */}
                 {editingHtml && (
