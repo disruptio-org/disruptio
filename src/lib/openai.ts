@@ -43,13 +43,22 @@ export function createProjectClient(project: { aiProvider?: string | null; aiApi
         // Anthropic uses its own SDK, but can be accessed via OpenAI-compatible endpoint
         baseURL = undefined;
         break;
+      case 'google':
+        baseURL = 'https://generativelanguage.googleapis.com/v1beta/openai/';
+        break;
       case 'ollama':
         baseURL = 'http://localhost:11434/v1';
         break;
       case 'deepseek':
         baseURL = 'https://api.deepseek.com/v1';
         break;
-      // openai, azure, google — use default or custom baseURL
+      case 'xai':
+        baseURL = 'https://api.x.ai/v1';
+        break;
+      case 'mistral':
+        baseURL = 'https://api.mistral.ai/v1';
+        break;
+      // openai, azure — use default or custom baseURL
     }
   }
 
