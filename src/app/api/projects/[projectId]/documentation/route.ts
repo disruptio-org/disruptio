@@ -171,69 +171,83 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
 
   // Build prompts per doc type
   const typePrompts: Record<string, string> = {
-    architecture: `Generate a comprehensive **Architecture Overview** document for this project. Include:
-1. **System Architecture** — High-level architecture pattern, layers, and component interaction
-2. **Technology Stack** — Detailed breakdown of all technologies used and why
-3. **Directory Structure** — Explain the folder organization and conventions
-4. **Key Design Decisions** — Patterns used (e.g., server components, API routes, auth strategy)
-5. **Deployment Architecture** — How the system is deployed and scales
-6. **Security Architecture** — Authentication flow, authorization, data protection
+    architecture: `Generate a highly visual **Architecture Overview** document. 
+Use multiple **Mermaid diagrams** (flowcharts, sequence diagrams, architecture diagrams) to explain the system.
 
-Use markdown headers, bullet points, and mermaid diagrams where helpful.`,
+Include:
+1. **Visual Architecture Diagram** — Mermaid diagram showing core components and interactions.
+2. **System Workflow** — Sequence diagram for a typical user-to-database operation.
+3. **Technology Matrix** — A markdown table listing Frontend, Backend, Database, Auth, and Infra tools.
+4. **Directory Map** — A structured tree or table of the src/ folder.
+5. **Security Flow** — Visual diagram of the authentication and authorization layer.
 
-    api: `Generate a comprehensive **API Reference & Workflow** document for this project. Include:
-1. **API Overview** — Base URL structure, authentication, common patterns
-2. **Endpoint Reference** — For each API route, document: method, path, request body, response, purpose
-3. **Authentication Flow** — How users authenticate and maintain sessions
-4. **Data Flow Diagrams** — Show how data moves through the API for key operations
-5. **Error Handling** — Common error codes and response formats
-6. **Webhook/Event Patterns** — If applicable
+CRITICAL: Every section should start with or include a visual element (Diagram or Table).`,
 
-Format each endpoint clearly with method, path, description, and example payloads.`,
+    api: `Generate a highly visual **API Reference & Workflow** document. 
 
-    'data-flow': `Generate a comprehensive **Data Flow & Models** document for this project. Include:
-1. **Data Model Overview** — Entity relationship diagram in mermaid
-2. **Model Definitions** — Each database model with fields, types, and relationships
-3. **Data Flow** — How data moves from user input → API → database → response
-4. **State Management** — Client-side state, caching strategies
-5. **Data Validation** — Where and how data is validated
-6. **Migration Strategy** — How schema changes are managed
+Include:
+1. **API Flow Diagram** — Mermaid sequence diagram showing Auth -> API -> Logic -> DB.
+2. **Endpoint Catalog** — Markdown table summarizing all routes (Method, Path, Auth, Purpose).
+3. **Request/Response Models** — Code blocks with examples for every core endpoint.
+4. **Auth Sequence** — Mermaid diagram for the login/session renewal flow.
+5. **Error States** — Table of common error codes and their visual meanings.
 
-Use mermaid ER diagrams and flow charts.`,
+CRITICAL: Use tables for endpoint lists and Mermaid for workflows.`,
 
-    components: `Generate a comprehensive **Component Map** document for this project. Include:
-1. **Component Hierarchy** — Tree of all major UI components
-2. **Page Structure** — Each page and its component composition
-3. **Shared Components** — Reusable components and their props
-4. **State Flow** — How state flows between components
-5. **Styling System** — CSS/design system conventions
-6. **Navigation** — Route structure and navigation patterns
+    'data-flow': `Generate a highly visual **Data Flow & Models** document. 
 
-Use mermaid diagrams for component trees and page flows.`,
+Include:
+1. **ER Diagram** — Comprehensive Mermaid ER diagram showing all models and relationships.
+2. **Model Schema Table** — A detailed table for each core model (Field, Type, Description).
+3. **Data Lifecycle Flow** — Mermaid flowchart: Creation -> Validation -> Storage -> Processing.
+4. **State Management Map** — Visual map of how data is cached vs persisted.
+5. **Validation Layers** — Diagram showing where validation happens (Client, API, DB).
 
-    general: `Generate a comprehensive **Product Overview** document for this project. Include:
-1. **Product Vision** — What the product does and who it's for
-2. **User Personas** — Key user types and their goals
-3. **Feature Map** — All features with descriptions and status
-4. **User Journeys** — Key workflows from the user's perspective
-5. **Business Logic** — Core rules and processes
-6. **Roadmap** — Current status and planned improvements
+CRITICAL: The ER diagram must be the centerpiece. Use tables for schema definitions.`,
 
-Keep it business-focused and accessible to non-technical stakeholders.`,
+    components: `Generate a highly visual **Component Map** document. 
+
+Include:
+1. **Component Hierarchy** — Mermaid flowchart showing the tree of major components.
+2. **Page Composition Map** — Table listing every page and its primary component set.
+3. **Shared UI Library** — Visual gallery list of reusable components with props tables.
+4. **State Flow Diagram** — Mermaid showing how props and context move between layers.
+5. **Navigation Flow** — Mermaid diagram of the application's route structure.
+
+CRITICAL: Use Mermaid trees for hierarchy and tables for component props.`,
+
+    general: `Generate a visual **Product Overview** for stakeholders.
+
+Include:
+1. **Product Feature Map** — A clean table of all features, their status, and complexity.
+2. **User Journey Flow** — Mermaid flowchart of the primary user "happy path".
+3. **Persona Matrix** — Table comparing different user types and their access levels.
+4. **Roadmap Timeline** — Mermaid Gantt or timeline showing current vs future work.
+5. **Business Logic Flow** — Diagram of the core engine/logic rules.
+
+CRITICAL: Keep it clean and use flowcharts to explain business processes.`,
   };
 
   const docTypeInfo = DOC_TYPES.find(d => d.id === docType) || DOC_TYPES[0];
 
   const systemPrompt = agentConfig?.systemInstructions
-    ? `${agentConfig.systemInstructions}\n\nYou are now generating documentation. Follow the instructions below.`
-    : 'You are a senior technical writer and solution architect. Generate clear, comprehensive, well-structured documentation.';
+    ? `${agentConfig.systemInstructions}\n\nYou are an expert at creating visual technical documentation. You prioritize diagrams (Mermaid) and tables over long text paragraphs.`
+    : 'You are a senior technical writer and solution architect specializing in visual documentation. Use diagrams, tables, and structured lists to make complex systems easy to understand.';
 
   const userMessage = `${typePrompts[docType] || typePrompts.general}
 
 # Project Context
 ${contextBlock}
 
-Generate the complete document in markdown format. Use proper headers (##, ###), bullet points, code blocks, and mermaid diagrams where appropriate. Be specific — reference actual file names, models, routes, and components from the project context. Do not use placeholders.`;
+# Instructions
+1. **Diagram First**: Every major section MUST include at least one Mermaid diagram or Markdown table.
+2. **No Placeholders**: Reference the actual files, routes, and models from the Project Context above.
+3. **Aesthetics**: Use Mermaid "dark" theme compatible syntax. Use flowcharts, sequence diagrams, and ER diagrams.
+4. **Markdown Tables**: Use tables for lists of routes, fields, dependencies, or components.
+5. **Structure**: Use clear ## and ### headers.
+6. **Code Blocks**: Use language-specific code blocks (e.g. \`\`\`typescript\`) for code snippets.
+
+Generate the complete document in markdown format.`;
 
   try {
     const client = createProjectClient(project);
