@@ -119,10 +119,10 @@ Be specific and grounded in the actual codebase and project data you have access
   return (
     <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 0 }}>
       {/* Left: form */}
-      <div style={{ padding: '32px', borderRight: '1px solid #1F1F1F', display: 'flex', flexDirection: 'column', gap: '26px', overflowY: 'auto' }}>
+      <div style={{ padding: '32px', borderRight: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: '26px', overflowY: 'auto' }}>
         <div>
           <div className="ds-section-title">PRODUCT CONTEXT</div>
-          <div style={{ marginTop: '8px', fontSize: '12px', color: '#6A6A6A', lineHeight: 1.6 }}>
+          <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-dim)', lineHeight: 1.6 }}>
             Structured input compiles directly into agent system prompts. Structure = precision.
           </div>
         </div>
@@ -146,17 +146,17 @@ Be specific and grounded in the actual codebase and project data you have access
         </div>
 
         {/* AI Agent Assist */}
-        <div style={{ borderTop: '1px solid #1F1F1F', paddingTop: '24px', marginTop: '4px' }}>
+        <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: '24px', marginTop: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '10px', letterSpacing: '.12em', color: '#FF2A2A', fontWeight: 700 }}>AI ASSIST</span>
+            <span style={{ fontSize: '10px', letterSpacing: '.12em', color: 'var(--accent)', fontWeight: 700 }}>AI ASSIST</span>
             {!hasGithub && (
-              <span style={{ fontSize: '10px', color: '#6A6A6A' }}>⚠ No GitHub repo connected</span>
+              <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>⚠ No GitHub repo connected</span>
             )}
             {hasGithub && !hasDeepScan && (
-              <span style={{ fontSize: '10px', color: '#F39C12' }}>⚠ Run a deep scan first for best results</span>
+              <span style={{ fontSize: '10px', color: 'var(--warning)' }}>⚠ Run a deep scan first for best results</span>
             )}
             {hasDeepScan && (
-              <span style={{ fontSize: '10px', color: '#2ECC71' }}>● Deep scan available</span>
+              <span style={{ fontSize: '10px', color: 'var(--success)' }}>● Deep scan available</span>
             )}
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -164,7 +164,7 @@ Be specific and grounded in the actual codebase and project data you have access
               value={selectedAgent}
               onChange={(e) => setSelectedAgent(e.target.value)}
               style={{
-                background: '#0D0D0D', border: '1px solid #2A2A2A', color: '#B3B3B3',
+                background: 'var(--bg-elevated)', border: '1px solid var(--border-input)', color: 'var(--text-secondary)',
                 padding: '8px 12px', fontSize: '11px', fontFamily: '"JetBrains Mono", monospace',
                 minWidth: '200px',
               }}
@@ -184,28 +184,28 @@ Be specific and grounded in the actual codebase and project data you have access
             </button>
           </div>
           {aiLoading && (
-            <div style={{ marginTop: '10px', fontSize: '10px', color: '#F39C12', letterSpacing: '.1em' }}>
+            <div style={{ marginTop: '10px', fontSize: '10px', color: 'var(--warning)', letterSpacing: '.1em' }}>
               ● Agent is analyzing repository and project context...
             </div>
           )}
           {aiError && (
-            <div style={{ marginTop: '10px', fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>
+            <div style={{ marginTop: '10px', fontSize: '10px', color: 'var(--accent)', letterSpacing: '.1em' }}>
               ✕ {aiError}
             </div>
           )}
         </div>
       </div>
       {/* Right: compiled prompt */}
-      <div style={{ background: '#000000', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <div style={{ padding: '14px 24px', borderBottom: '1px solid #1F1F1F', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ padding: '14px 24px', borderBottom: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span className="ds-label">COMPILED AGENT PROMPT — READ ONLY</span>
-          <span style={{ fontSize: '10.5px', color: '#4A4A4A' }}>{tokenCount} tokens · auto-compiled</span>
+          <span style={{ fontSize: '10.5px', color: 'var(--text-ghost)' }}>{tokenCount} tokens · auto-compiled</span>
         </div>
-        <pre style={{ margin: 0, padding: '24px', overflow: 'auto', flex: 1, fontFamily: 'var(--font-mono)', fontSize: '12px', lineHeight: 1.7, color: '#B3B3B3', whiteSpace: 'pre-wrap' }}>
+        <pre style={{ margin: 0, padding: '24px', overflow: 'auto', flex: 1, fontFamily: 'var(--font-mono)', fontSize: '12px', lineHeight: 1.7, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
           {compiledPrompt}
         </pre>
-        <div style={{ padding: '12px 24px', borderTop: '1px solid #1F1F1F', fontSize: '10.5px', color: '#4A4A4A' }}>
-          Injected into: <span style={{ color: '#8A8A8A' }}>[ARC] [DSN] [PLN] [SPC]</span> system instructions on next run.
+        <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border-default)', fontSize: '10.5px', color: 'var(--text-ghost)' }}>
+          Injected into: <span style={{ color: 'var(--text-muted)' }}>[ARC] [DSN] [PLN] [SPC]</span> system instructions on next run.
         </div>
       </div>
     </div>

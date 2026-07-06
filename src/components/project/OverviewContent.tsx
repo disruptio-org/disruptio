@@ -58,12 +58,12 @@ export default function OverviewContent({ project }: OverviewProps) {
         <div className="ds-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span className="ds-label">SETUP COMPLETENESS</span>
-            <span style={{ fontSize: '24px', fontWeight: 800, color: '#FF2A2A' }}>{completionPct}%</span>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)' }}>{completionPct}%</span>
           </div>
           <div className="ds-progress" style={{ marginTop: '14px' }}>
             <div className="ds-progress-fill" style={{ width: `${completionPct}%` }} />
           </div>
-          <div style={{ marginTop: '12px', fontSize: '11.5px', color: '#6A6A6A' }}>
+          <div style={{ marginTop: '12px', fontSize: '11.5px', color: 'var(--text-dim)' }}>
             {completedCount} of {checklist.length} context modules configured. Agents run at reduced precision until complete.
           </div>
         </div>
@@ -72,29 +72,29 @@ export default function OverviewContent({ project }: OverviewProps) {
           {project.githubConnection ? (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
-                <span style={{ color: '#6A6A6A' }}>repo</span>
-                <span style={{ color: '#FFFFFF' }}>{project.githubConnection.owner}/{project.githubConnection.repository}</span>
+                <span style={{ color: 'var(--text-dim)' }}>repo</span>
+                <span style={{ color: 'var(--text-primary)' }}>{project.githubConnection.owner}/{project.githubConnection.repository}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
-                <span style={{ color: '#6A6A6A' }}>branch</span>
-                <span style={{ color: '#FFFFFF' }}>{project.githubConnection.defaultBranch || 'main'}</span>
+                <span style={{ color: 'var(--text-dim)' }}>branch</span>
+                <span style={{ color: 'var(--text-primary)' }}>{project.githubConnection.defaultBranch || 'main'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
-                <span style={{ color: '#6A6A6A' }}>access</span>
-                <span style={{ color: '#2ECC71' }}>read-only · OK</span>
+                <span style={{ color: 'var(--text-dim)' }}>access</span>
+                <span style={{ color: 'var(--success)' }}>read-only · OK</span>
               </div>
             </>
           ) : (
-            <div style={{ color: '#5A5A5A', fontSize: '12px' }}>No repository connected</div>
+            <div style={{ color: 'var(--text-faint)', fontSize: '12px' }}>No repository connected</div>
           )}
         </div>
       </div>
 
       {/* Checklist */}
-      <div style={{ border: '1px solid #1F1F1F' }}>
+      <div style={{ border: '1px solid var(--border-default)' }}>
         <div style={{
-          padding: '14px 20px', borderBottom: '1px solid #1F1F1F',
-          background: '#000000', fontSize: '11px', letterSpacing: '.14em', color: '#8A8A8A',
+          padding: '14px 20px', borderBottom: '1px solid var(--border-default)',
+          background: 'var(--bg-surface)', fontSize: '11px', letterSpacing: '.14em', color: 'var(--text-muted)',
         }}>SETUP CHECKLIST</div>
         {checklist.map((c, i) => (
           <div
@@ -102,18 +102,18 @@ export default function OverviewContent({ project }: OverviewProps) {
             onClick={() => router.push(`/projects/${project.id}/${c.tab}`)}
             style={{
               display: 'flex', alignItems: 'center', gap: '14px',
-              padding: '14px 20px', borderBottom: '1px solid #161616',
+              padding: '14px 20px', borderBottom: '1px solid var(--border-subtle)',
               cursor: 'pointer', transition: 'background .1s',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#121212')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <span style={{
               fontSize: '14px', width: '22px', textAlign: 'center',
-              color: c.done ? '#2ECC71' : '#3A3A3A',
+              color: c.done ? 'var(--success)' : 'var(--border-strong)',
             }}>{c.done ? '✓' : '→'}</span>
-            <span style={{ flex: 1, color: c.done ? '#6A6A6A' : '#FFFFFF', fontSize: '13px', textDecoration: c.done ? 'line-through' : 'none' }}>{c.label}</span>
-            <span style={{ fontSize: '11px', color: c.done ? '#2ECC71' : '#5A5A5A' }}>{c.done ? 'CONFIGURED' : 'PENDING'}</span>
+            <span style={{ flex: 1, color: c.done ? 'var(--text-dim)' : 'var(--text-primary)', fontSize: '13px', textDecoration: c.done ? 'line-through' : 'none' }}>{c.label}</span>
+            <span style={{ fontSize: '11px', color: c.done ? 'var(--success)' : 'var(--text-faint)' }}>{c.done ? 'CONFIGURED' : 'PENDING'}</span>
           </div>
         ))}
       </div>
@@ -130,13 +130,13 @@ export default function OverviewContent({ project }: OverviewProps) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className="ds-code-badge">{code}</span>
-                    <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '13px' }}>{agent.name}</span>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '13px' }}>{agent.name}</span>
                   </div>
                   <span style={{
                     fontSize: '10px', letterSpacing: '.08em', padding: '3px 8px',
-                    background: agent.enabled ? 'rgba(46,204,113,.12)' : '#1A1A1A',
-                    color: agent.enabled ? '#2ECC71' : '#5A5A5A',
-                    border: `1px solid ${agent.enabled ? 'rgba(46,204,113,.2)' : '#2A2A2A'}`,
+                    background: agent.enabled ? 'rgba(46,204,113,.12)' : 'var(--bg-hover)',
+                    color: agent.enabled ? 'var(--success)' : 'var(--text-faint)',
+                    border: `1px solid ${agent.enabled ? 'rgba(46,204,113,.2)' : 'var(--border-input)'}`,
                   }}>{agent.enabled ? 'ACTIVE' : 'DISABLED'}</span>
                 </div>
                 <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -146,7 +146,7 @@ export default function OverviewContent({ project }: OverviewProps) {
                   {check?.phase === 'done' && (
                     <span style={{
                       fontSize: '11px', animation: 'dsFadeIn .2s ease-out',
-                      color: check.ok ? '#2ECC71' : '#FF2A2A',
+                      color: check.ok ? 'var(--success)' : 'var(--accent)',
                     }}>{check.text}</span>
                   )}
                 </div>

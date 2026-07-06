@@ -111,7 +111,7 @@ export default function GitHubContent({ project }: { project: any }) {
             <div className="ds-label" style={{ marginBottom: '14px' }}>CONNECTION STATUS</div>
             <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
               {[
-                { label: 'status', value: conn.status, color: conn.status === 'connected' ? '#2ECC71' : '#FF2A2A' },
+                { label: 'status', value: conn.status, color: conn.status === 'connected' ? 'var(--success)' : 'var(--accent)' },
                 { label: 'owner', value: conn.owner },
                 { label: 'repository', value: conn.repository },
                 { label: 'branch', value: conn.defaultBranch || 'main' },
@@ -120,23 +120,23 @@ export default function GitHubContent({ project }: { project: any }) {
                 { label: 'last scanned', value: conn.lastScannedAt ? new Date(conn.lastScannedAt).toLocaleString() : 'never' },
               ].map((item, i) => (
                 <div key={i} style={{ minWidth: '140px' }}>
-                  <div style={{ fontSize: '10.5px', color: '#6A6A6A', letterSpacing: '.1em', marginBottom: '4px' }}>{item.label}</div>
-                  <div style={{ fontSize: '13px', color: item.color || '#FFFFFF' }}>{item.value}</div>
+                  <div style={{ fontSize: '10.5px', color: 'var(--text-dim)', letterSpacing: '.1em', marginBottom: '4px' }}>{item.label}</div>
+                  <div style={{ fontSize: '13px', color: item.color || 'var(--text-primary)' }}>{item.value}</div>
                 </div>
               ))}
             </div>
             {conn.accessTokenEncrypted && (
               <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ECC71', display: 'inline-block' }} />
-                <span style={{ fontSize: '11px', color: '#2ECC71' }}>OAuth token active — full permissions granted</span>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }} />
+                <span style={{ fontSize: '11px', color: 'var(--success)' }}>OAuth token active — full permissions granted</span>
               </div>
             )}
           </div>
 
           {/* Agent selector + Deep scan controls */}
           <div className="ds-card" style={{ borderColor: '#FF2A2A33' }}>
-            <div className="ds-label" style={{ marginBottom: '14px', color: '#FF2A2A' }}>DEEP SCAN — ARCHITECT MODE</div>
-            <div style={{ fontSize: '11px', color: '#6A6A6A', lineHeight: 1.6, marginBottom: '16px' }}>
+            <div className="ds-label" style={{ marginBottom: '14px', color: 'var(--accent)' }}>DEEP SCAN — ARCHITECT MODE</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-dim)', lineHeight: 1.6, marginBottom: '16px' }}>
               Reads every file in the repository and builds a complete architectural understanding.
               Select an agent to produce an AI-powered file-by-file analysis.
             </div>
@@ -146,7 +146,7 @@ export default function GitHubContent({ project }: { project: any }) {
                   value={selectedAgent}
                   onChange={(e) => setSelectedAgent(e.target.value)}
                   style={{
-                    background: '#0D0D0D', border: '1px solid #2A2A2A', color: '#B3B3B3',
+                    background: 'var(--bg-elevated)', border: '1px solid var(--border-input)', color: 'var(--text-secondary)',
                     padding: '8px 12px', fontSize: '11px', fontFamily: '"JetBrains Mono", monospace',
                     minWidth: '220px',
                   }}
@@ -167,7 +167,7 @@ export default function GitHubContent({ project }: { project: any }) {
               </button>
             </div>
             {deepScanning && (
-              <div style={{ marginTop: '12px', fontSize: '10px', color: '#F39C12', letterSpacing: '.1em' }}>
+              <div style={{ marginTop: '12px', fontSize: '10px', color: 'var(--warning)', letterSpacing: '.1em' }}>
                 ● Reading all repository files and running agent analysis... This may take 30-60 seconds.
               </div>
             )}
@@ -180,7 +180,7 @@ export default function GitHubContent({ project }: { project: any }) {
             <button className="ds-btn-ghost ds-btn-sm" onClick={() => router.push('/projects/connect-github')}>CHANGE REPOSITORY</button>
             <button
               className="ds-btn-ghost ds-btn-sm"
-              style={{ color: '#FF2A2A', borderColor: '#FF2A2A' }}
+              style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }}
               onClick={handleDisconnect}
               disabled={disconnecting}
             >
@@ -192,30 +192,30 @@ export default function GitHubContent({ project }: { project: any }) {
           {deepScanResult && (
             <div className="ds-card" style={{ animation: 'dsFadeIn .3s ease-out', borderColor: '#FF2A2A33' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FF2A2A' }} />
-                <div className="ds-label" style={{ color: '#FF2A2A' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--accent)' }} />
+                <div className="ds-label" style={{ color: 'var(--accent)' }}>
                   {deepScanResult.agentUsed ? 'AI-POWERED DEEP SCAN COMPLETE' : 'STRUCTURAL DEEP SCAN COMPLETE'}
                 </div>
-                <span style={{ fontSize: '10px', color: '#5A5A5A', marginLeft: 'auto' }}>v{deepScanResult.scanVersion}</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-faint)', marginLeft: 'auto' }}>v{deepScanResult.scanVersion}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '16px', marginBottom: '16px' }}>
                 {[
-                  { label: 'FILES READ', value: deepScanResult.filesRead, color: '#2ECC71' },
+                  { label: 'FILES READ', value: deepScanResult.filesRead, color: 'var(--success)' },
                   { label: 'API ROUTES', value: deepScanResult.apiRouteCount },
                   { label: 'COMPONENTS', value: deepScanResult.componentCount },
                   { label: 'DB MODELS', value: deepScanResult.modelCount },
                 ].map((m) => (
-                  <div key={m.label} style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F' }}>
-                    <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em' }}>{m.label}</div>
-                    <div style={{ fontSize: '22px', color: m.color || '#FFFFFF', fontWeight: 700, marginTop: '6px' }}>{m.value}</div>
+                  <div key={m.label} style={{ background: 'var(--bg-elevated)', padding: '14px', border: '1px solid var(--border-default)' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.12em' }}>{m.label}</div>
+                    <div style={{ fontSize: '22px', color: m.color || 'var(--text-primary)', fontWeight: 700, marginTop: '6px' }}>{m.value}</div>
                   </div>
                 ))}
               </div>
 
               {/* AI Analysis (detailed) */}
               {deepScanResult.aiAnalysis && (
-                <div style={{ background: '#0D0D0D', padding: '18px', border: '1px solid #FF2A2A33', marginBottom: '12px' }}>
-                  <div style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.12em', marginBottom: '12px', fontWeight: 700 }}>
+                <div style={{ background: 'var(--bg-elevated)', padding: '18px', border: '1px solid #FF2A2A33', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--accent)', letterSpacing: '.12em', marginBottom: '12px', fontWeight: 700 }}>
                     AI ARCHITECTURAL ANALYSIS
                   </div>
                   <div style={{ maxHeight: '600px', overflow: 'auto' }}>
@@ -225,20 +225,20 @@ export default function GitHubContent({ project }: { project: any }) {
               )}
 
               {deepScanResult.architectureSummary && !deepScanResult.aiAnalysis && (
-                <div style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F', marginBottom: '12px' }}>
-                  <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '8px' }}>ARCHITECTURE SUMMARY</div>
+                <div style={{ background: 'var(--bg-elevated)', padding: '14px', border: '1px solid var(--border-default)', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.12em', marginBottom: '8px' }}>ARCHITECTURE SUMMARY</div>
                   <MarkdownRenderer content={deepScanResult.architectureSummary} />
                 </div>
               )}
               {deepScanResult.techStackSummary && (
-                <div style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F' }}>
-                  <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '8px' }}>TECH STACK</div>
-                  <pre style={{ fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: 0, fontFamily: '"JetBrains Mono", monospace' }}>
+                <div style={{ background: 'var(--bg-elevated)', padding: '14px', border: '1px solid var(--border-default)' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.12em', marginBottom: '8px' }}>TECH STACK</div>
+                  <pre style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: 0, fontFamily: '"JetBrains Mono", monospace' }}>
                     {deepScanResult.techStackSummary}
                   </pre>
                 </div>
               )}
-              <div style={{ marginTop: '12px', fontSize: '11px', color: '#2ECC71' }}>
+              <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--success)' }}>
                 ✓ Repository knowledge stored. {deepScanResult.agentUsed ? 'AI analysis complete.' : 'Structural scan complete.'} Agents can now use this knowledge.
               </div>
             </div>
@@ -250,23 +250,23 @@ export default function GitHubContent({ project }: { project: any }) {
               <div className="ds-label" style={{ marginBottom: '14px' }}>LIVE SCAN RESULTS</div>
               {scanResult.languages && (
                 <div style={{ marginBottom: '10px' }}>
-                  <span style={{ fontSize: '10.5px', color: '#6A6A6A', letterSpacing: '.1em' }}>LANGUAGES </span>
-                  <span style={{ fontSize: '12px', color: '#B3B3B3' }}>{renderLanguages(scanResult.languages)}</span>
+                  <span style={{ fontSize: '10.5px', color: 'var(--text-dim)', letterSpacing: '.1em' }}>LANGUAGES </span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{renderLanguages(scanResult.languages)}</span>
                 </div>
               )}
               {scanResult.frameworks?.length > 0 && (
                 <div style={{ marginBottom: '10px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {renderFrameworks(scanResult.frameworks).map((f: string) => (
-                    <span key={f} className="ds-badge" style={{ color: '#2ECC71' }}>{f}</span>
+                    <span key={f} className="ds-badge" style={{ color: 'var(--success)' }}>{f}</span>
                   ))}
                 </div>
               )}
               {scanResult.fileTreeSummary && (
-                <div style={{ fontSize: '11px', color: '#6A6A6A', marginBottom: '10px' }}>{renderFileTree(scanResult.fileTreeSummary)}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '10px' }}>{renderFileTree(scanResult.fileTreeSummary)}</div>
               )}
               {scanResult.importantFiles?.length > 0 && (
                 <div style={{ marginBottom: '10px' }}>
-                  <span style={{ fontSize: '10.5px', color: '#6A6A6A', letterSpacing: '.1em' }}>KEY FILES </span>
+                  <span style={{ fontSize: '10.5px', color: 'var(--text-dim)', letterSpacing: '.1em' }}>KEY FILES </span>
                   <div style={{ marginTop: '6px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     {scanResult.importantFiles.map((f: string) => (
                       <span key={f} className="ds-badge">{f}</span>
@@ -284,16 +284,16 @@ export default function GitHubContent({ project }: { project: any }) {
                     { label: 'visibility', value: scanResult.metadata.visibility },
                   ].map(m => (
                     <div key={m.label}>
-                      <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em' }}>{m.label}</div>
-                      <div style={{ fontSize: '13px', color: '#FFFFFF', marginTop: '2px' }}>{m.value}</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.1em' }}>{m.label}</div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '2px' }}>{m.value}</div>
                     </div>
                   ))}
                 </div>
               )}
               {scanResult.readmePreview && (
-                <div style={{ marginTop: '14px', borderTop: '1px solid #1F1F1F', paddingTop: '14px' }}>
-                  <div style={{ fontSize: '10.5px', color: '#6A6A6A', letterSpacing: '.1em', marginBottom: '8px' }}>README PREVIEW</div>
-                  <div style={{ fontSize: '11px', color: '#8A8A8A', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: '200px', overflow: 'auto' }}>
+                <div style={{ marginTop: '14px', borderTop: '1px solid var(--border-default)', paddingTop: '14px' }}>
+                  <div style={{ fontSize: '10.5px', color: 'var(--text-dim)', letterSpacing: '.1em', marginBottom: '8px' }}>README PREVIEW</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: '200px', overflow: 'auto' }}>
                     {scanResult.readmePreview}
                   </div>
                 </div>
@@ -305,27 +305,27 @@ export default function GitHubContent({ project }: { project: any }) {
           {conn.scans?.length > 0 && !scanResult && !deepScanResult && (
             <div className="ds-card">
               <div className="ds-label" style={{ marginBottom: '14px' }}>LATEST SCAN</div>
-              <div style={{ color: '#8A8A8A', fontSize: '12px' }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
                 Scanned: {new Date(conn.scans[0].createdAt).toLocaleString()}
               </div>
               {conn.scans[0].detectedLanguages && (
                 <div style={{ marginTop: '8px' }}>
                   <span className="ds-label">LANGUAGES: </span>
-                  <span style={{ color: '#B3B3B3', fontSize: '12px' }}>{renderLanguages(conn.scans[0].detectedLanguages)}</span>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{renderLanguages(conn.scans[0].detectedLanguages)}</span>
                 </div>
               )}
               {conn.scans[0].detectedFrameworks && (
                 <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                   <span className="ds-label">FRAMEWORKS: </span>
                   {renderFrameworks(conn.scans[0].detectedFrameworks).map((f: string) => (
-                    <span key={f} className="ds-badge" style={{ color: '#2ECC71' }}>{f}</span>
+                    <span key={f} className="ds-badge" style={{ color: 'var(--success)' }}>{f}</span>
                   ))}
                 </div>
               )}
               {conn.scans[0].fileTreeSummary && (
                 <div style={{ marginTop: '8px' }}>
                   <span className="ds-label">STRUCTURE: </span>
-                  <span style={{ color: '#B3B3B3', fontSize: '12px' }}>{renderFileTree(conn.scans[0].fileTreeSummary)}</span>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{renderFileTree(conn.scans[0].fileTreeSummary)}</span>
                 </div>
               )}
             </div>
@@ -335,11 +335,11 @@ export default function GitHubContent({ project }: { project: any }) {
           {project.repositoryKnowledge && !deepScanResult && (
             <div className="ds-card" style={{ borderColor: '#FF2A2A22' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#2ECC71' }} />
-                <div className="ds-label" style={{ color: '#2ECC71' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--success)' }} />
+                <div className="ds-label" style={{ color: 'var(--success)' }}>
                   {project.repositoryKnowledge.aiAnalysis ? 'AI-POWERED DEEP SCAN — STORED' : 'STRUCTURAL DEEP SCAN — STORED'}
                 </div>
-                <span style={{ fontSize: '10px', color: '#5A5A5A', marginLeft: 'auto' }}>
+                <span style={{ fontSize: '10px', color: 'var(--text-faint)', marginLeft: 'auto' }}>
                   v{project.repositoryKnowledge.scanVersion} · Updated {new Date(project.repositoryKnowledge.updatedAt).toLocaleString()}
                 </span>
               </div>
@@ -348,14 +348,14 @@ export default function GitHubContent({ project }: { project: any }) {
               {project.repositoryKnowledge.architecture && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '16px', marginBottom: '16px' }}>
                   {[
-                    { label: 'TOTAL FILES', value: project.repositoryKnowledge.architecture.totalFiles, color: '#2ECC71' },
+                    { label: 'TOTAL FILES', value: project.repositoryKnowledge.architecture.totalFiles, color: 'var(--success)' },
                     { label: 'API ROUTES', value: project.repositoryKnowledge.architecture.apiRouteCount },
                     { label: 'COMPONENTS', value: project.repositoryKnowledge.architecture.componentCount },
                     { label: 'DB MODELS', value: project.repositoryKnowledge.databaseModels ? Object.keys(project.repositoryKnowledge.databaseModels).length : 0 },
                   ].map((m) => (
-                    <div key={m.label} style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F' }}>
-                      <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em' }}>{m.label}</div>
-                      <div style={{ fontSize: '22px', color: m.color || '#FFFFFF', fontWeight: 700, marginTop: '6px' }}>{m.value}</div>
+                    <div key={m.label} style={{ background: 'var(--bg-elevated)', padding: '14px', border: '1px solid var(--border-default)' }}>
+                      <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.12em' }}>{m.label}</div>
+                      <div style={{ fontSize: '22px', color: m.color || 'var(--text-primary)', fontWeight: 700, marginTop: '6px' }}>{m.value}</div>
                     </div>
                   ))}
                 </div>
@@ -363,8 +363,8 @@ export default function GitHubContent({ project }: { project: any }) {
 
               {/* AI Analysis */}
               {project.repositoryKnowledge.aiAnalysis && (
-                <div style={{ background: '#0D0D0D', padding: '18px', border: '1px solid #FF2A2A33', marginBottom: '12px' }}>
-                  <div style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.12em', marginBottom: '12px', fontWeight: 700 }}>
+                <div style={{ background: 'var(--bg-elevated)', padding: '18px', border: '1px solid #FF2A2A33', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--accent)', letterSpacing: '.12em', marginBottom: '12px', fontWeight: 700 }}>
                     AI ARCHITECTURAL ANALYSIS
                   </div>
                   <div style={{ maxHeight: '600px', overflow: 'auto' }}>
@@ -375,32 +375,32 @@ export default function GitHubContent({ project }: { project: any }) {
 
               {/* Architecture summary (fallback if no AI) */}
               {project.repositoryKnowledge.architectureSummary && !project.repositoryKnowledge.aiAnalysis && (
-                <div style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F', marginBottom: '12px' }}>
-                  <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '8px' }}>ARCHITECTURE SUMMARY</div>
+                <div style={{ background: 'var(--bg-elevated)', padding: '14px', border: '1px solid var(--border-default)', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.12em', marginBottom: '8px' }}>ARCHITECTURE SUMMARY</div>
                   <MarkdownRenderer content={project.repositoryKnowledge.architectureSummary} />
                 </div>
               )}
 
               {/* Tech Stack */}
               {project.repositoryKnowledge.techStackSummary && (
-                <div style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F' }}>
-                  <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '8px' }}>TECH STACK</div>
-                  <pre style={{ fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: 0, fontFamily: '"JetBrains Mono", monospace' }}>
+                <div style={{ background: 'var(--bg-elevated)', padding: '14px', border: '1px solid var(--border-default)' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.12em', marginBottom: '8px' }}>TECH STACK</div>
+                  <pre style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: 0, fontFamily: '"JetBrains Mono", monospace' }}>
                     {project.repositoryKnowledge.techStackSummary}
                   </pre>
                 </div>
               )}
 
-              <div style={{ marginTop: '12px', fontSize: '11px', color: '#2ECC71' }}>
+              <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--success)' }}>
                 ✓ Repository knowledge stored. All agents can use this data for implementation planning and code-aware recommendations.
               </div>
             </div>
           )}
         </>
       ) : (
-        <div style={{ border: '1px solid #2A2A2A', padding: '60px', textAlign: 'center' }}>
+        <div style={{ border: '1px solid var(--border-input)', padding: '60px', textAlign: 'center' }}>
           <div style={{ fontSize: '16px', fontWeight: 700 }}>No repository connected.</div>
-          <div style={{ marginTop: '8px', color: '#6A6A6A', fontSize: '12px' }}>Connect a GitHub repository to enable code intelligence.</div>
+          <div style={{ marginTop: '8px', color: 'var(--text-dim)', fontSize: '12px' }}>Connect a GitHub repository to enable code intelligence.</div>
           <button className="ds-btn-primary" style={{ marginTop: '24px' }} onClick={() => router.push('/projects/connect-github')}>CONNECT REPOSITORY</button>
         </div>
       )}

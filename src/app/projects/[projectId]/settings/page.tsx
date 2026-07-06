@@ -88,13 +88,13 @@ export default function SettingsPage() {
   };
 
   const inputStyle = {
-    background: '#0D0D0D', border: '1px solid #2A2A2A', color: '#FFFFFF',
+    background: 'var(--bg-elevated)', border: '1px solid var(--border-input)', color: 'var(--text-primary)',
     padding: '10px 14px', fontSize: '12px', fontFamily: '"JetBrains Mono", monospace',
     width: '100%',
   };
 
   const labelStyle = {
-    fontSize: '10px', letterSpacing: '.14em', color: '#6A6A6A',
+    fontSize: '10px', letterSpacing: '.14em', color: 'var(--text-dim)',
     marginBottom: '6px', display: 'block' as const,
   };
 
@@ -105,13 +105,13 @@ export default function SettingsPage() {
       {/* AI / LLM Configuration */}
       <div className="ds-card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: hasApiKey ? '#2ECC71' : '#F39C12' }} />
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: hasApiKey ? 'var(--success)' : 'var(--warning)' }} />
           <div className="ds-label">AI / LLM CONFIGURATION</div>
-          <span style={{ fontSize: '10px', color: '#5A5A5A', marginLeft: 'auto' }}>
+          <span style={{ fontSize: '10px', color: 'var(--text-faint)', marginLeft: 'auto' }}>
             {hasApiKey ? 'Project key active' : 'Using global key'}
           </span>
         </div>
-        <div style={{ fontSize: '11px', color: '#6A6A6A', lineHeight: 1.6, marginBottom: '20px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-dim)', lineHeight: 1.6, marginBottom: '20px' }}>
           Configure which AI provider and model this project uses. Set a project-specific API key to override the global environment key.
         </div>
 
@@ -159,7 +159,7 @@ export default function SettingsPage() {
                 placeholder="Enter a custom model identifier..."
                 style={inputStyle}
               />
-              <div style={{ fontSize: '9px', color: '#4A4A4A', marginTop: '4px' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-ghost)', marginTop: '4px' }}>
                 Override the dropdown selection with a specific model version (e.g., gpt-4o-2024-08-06)
               </div>
             </div>
@@ -188,14 +188,14 @@ export default function SettingsPage() {
                 {hasApiKey && (
                   <button
                     className="ds-btn-ghost ds-btn-sm"
-                    style={{ color: '#FF2A2A', borderColor: '#FF2A2A', whiteSpace: 'nowrap' }}
+                    style={{ color: 'var(--accent)', borderColor: 'var(--accent)', whiteSpace: 'nowrap' }}
                     onClick={handleRemoveKey}
                   >
                     REMOVE
                   </button>
                 )}
               </div>
-              <div style={{ fontSize: '9px', color: '#4A4A4A', marginTop: '4px' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-ghost)', marginTop: '4px' }}>
                 {aiProvider === 'openai' && 'OpenAI API key starting with sk-...'}
                 {aiProvider === 'anthropic' && 'Anthropic API key starting with sk-ant-...'}
                 {aiProvider === 'google' && 'Google AI API key from AI Studio or Vertex AI'}
@@ -229,16 +229,16 @@ export default function SettingsPage() {
             <div>
               <label style={labelStyle}>DEFAULT TEMPERATURE ({aiTemperature.toFixed(1)})</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '10px', color: '#5A5A5A' }}>0.0</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>0.0</span>
                 <input
                   type="range" min="0" max="1" step="0.1"
                   value={aiTemperature}
                   onChange={(e) => setAiTemperature(parseFloat(e.target.value))}
-                  style={{ flex: 1, accentColor: '#FF2A2A' }}
+                  style={{ flex: 1, accentColor: 'var(--accent)' }}
                 />
-                <span style={{ fontSize: '10px', color: '#5A5A5A' }}>1.0</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>1.0</span>
               </div>
-              <div style={{ fontSize: '9px', color: '#4A4A4A', marginTop: '4px' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-ghost)', marginTop: '4px' }}>
                 Lower = more precise and deterministic. Higher = more creative and varied.
               </div>
             </div>
@@ -253,7 +253,7 @@ export default function SettingsPage() {
                 {saving ? '[ SAVING... ]' : '[ SAVE AI SETTINGS ]'}
               </button>
               {saved && (
-                <span style={{ fontSize: '11px', color: '#2ECC71' }}>
+                <span style={{ fontSize: '11px', color: 'var(--success)' }}>
                   ✓ Settings saved
                 </span>
               )}
@@ -262,23 +262,23 @@ export default function SettingsPage() {
         )}
 
         {loading && (
-          <div style={{ fontSize: '11px', color: '#5A5A5A' }}>Loading settings...</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>Loading settings...</div>
         )}
       </div>
 
       {/* Environment Key Status */}
-      <div className="ds-card" style={{ borderColor: '#1F1F1F' }}>
+      <div className="ds-card" style={{ borderColor: 'var(--border-default)' }}>
         <div className="ds-label" style={{ marginBottom: '12px' }}>GLOBAL ENVIRONMENT KEY</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{
             width: '8px', height: '8px', borderRadius: '50%',
-            background: '#2ECC71', display: 'inline-block',
+            background: 'var(--success)', display: 'inline-block',
           }} />
-          <span style={{ fontSize: '11px', color: '#8A8A8A' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
             OPENAI_API_KEY is {process.env.NEXT_PUBLIC_HAS_OPENAI_KEY === 'true' ? 'configured' : 'configured'} in environment
           </span>
         </div>
-        <div style={{ fontSize: '10px', color: '#4A4A4A', marginTop: '8px' }}>
+        <div style={{ fontSize: '10px', color: 'var(--text-ghost)', marginTop: '8px' }}>
           Project-specific keys take priority over the global environment variable.
           If no project key is set, agents will use the global key.
         </div>
@@ -286,15 +286,15 @@ export default function SettingsPage() {
 
       {/* Danger Zone */}
       <div className="ds-card" style={{ borderColor: '#FF2A2A22' }}>
-        <div className="ds-label" style={{ marginBottom: '16px', color: '#FF2A2A' }}>DANGER ZONE</div>
-        <div style={{ color: '#8A8A8A', fontSize: '12px', lineHeight: 1.6, marginBottom: '16px' }}>
+        <div className="ds-label" style={{ marginBottom: '16px', color: 'var(--accent)' }}>DANGER ZONE</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.6, marginBottom: '16px' }}>
           Deleting this project will permanently remove all context, personas, guidelines, agent configurations, and run history. This action cannot be undone.
         </div>
         {!confirmDelete ? (
-          <button className="ds-btn-ghost ds-btn-sm" style={{ color: '#FF2A2A', borderColor: '#FF2A2A' }} onClick={() => setConfirmDelete(true)}>DELETE PROJECT</button>
+          <button className="ds-btn-ghost ds-btn-sm" style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={() => setConfirmDelete(true)}>DELETE PROJECT</button>
         ) : (
           <div className="ds-form-row">
-            <button className="ds-btn-primary" style={{ background: '#FF2A2A' }} onClick={handleDelete} disabled={deleting}>
+            <button className="ds-btn-primary" style={{ background: 'var(--accent)' }} onClick={handleDelete} disabled={deleting}>
               {deleting ? 'DELETING...' : 'CONFIRM DELETE'}
             </button>
             <button className="ds-btn-ghost" onClick={() => setConfirmDelete(false)}>CANCEL</button>

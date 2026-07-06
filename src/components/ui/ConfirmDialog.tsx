@@ -55,22 +55,22 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
           <div style={{
             position: 'fixed', top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
-            zIndex: 9999, background: '#0D0D0D',
-            border: `1px solid ${state.options.danger ? '#FF2A2A' : '#2A2A2A'}`,
+            zIndex: 9999, background: 'var(--bg-elevated)',
+            border: `1px solid ${state.options.danger ? 'var(--accent)' : 'var(--border-input)'}`,
             padding: '28px 32px', minWidth: '380px', maxWidth: '480px',
             fontFamily: '"JetBrains Mono", monospace',
           }}>
             {state.options.title && (
               <div style={{
                 fontSize: '11px', letterSpacing: '.14em', fontWeight: 700,
-                color: state.options.danger ? '#FF2A2A' : '#FFFFFF',
+                color: state.options.danger ? 'var(--accent)' : 'var(--text-primary)',
                 marginBottom: '16px',
               }}>
                 {state.options.title}
               </div>
             )}
             <div style={{
-              fontSize: '13px', color: '#B3B3B3', lineHeight: 1.7,
+              fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.7,
               marginBottom: '24px',
             }}>
               {state.options.message}
@@ -84,7 +84,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
               </button>
               <button
                 className={state.options.danger ? 'ds-btn-primary ds-btn-sm' : 'ds-btn-primary ds-btn-sm'}
-                style={state.options.danger ? { background: '#FF2A2A', borderColor: '#FF2A2A' } : {}}
+                style={state.options.danger ? { background: 'var(--accent)', borderColor: 'var(--accent)' } : {}}
                 onClick={() => handleClose(true)}
               >
                 {state.options.confirmLabel || 'CONFIRM'}

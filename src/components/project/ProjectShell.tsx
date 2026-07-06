@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 interface ProjectShellProps {
   project: {
@@ -50,6 +51,7 @@ export default function ProjectShell({ project, children }: ProjectShellProps) {
             </div>
           ))}
         </div>
+        <ThemeToggle />
         <div className="ds-sidebar-back" onClick={() => router.push('/projects')}>
           ← ALL PROJECTS
         </div>
@@ -58,21 +60,21 @@ export default function ProjectShell({ project, children }: ProjectShellProps) {
       {/* Main */}
       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <div style={{
-          height: '60px', flex: 'none', borderBottom: '1px solid #1F1F1F',
+          height: '60px', flex: 'none', borderBottom: '1px solid var(--border-default)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 32px', background: '#0A0A0A',
+          padding: '0 32px', background: 'var(--bg-primary)',
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-            <span style={{ color: '#6A6A6A', fontSize: '12px', letterSpacing: '.14em' }}>PROJECT:</span>
-            <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '15px' }}>{project.name}</span>
+            <span style={{ color: 'var(--text-dim)', fontSize: '12px', letterSpacing: '.14em' }}>PROJECT:</span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '15px' }}>{project.name}</span>
           </div>
           {project.githubConnection && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: '8px',
-              border: '1px solid #1F1F1F', padding: '6px 12px',
+              border: '1px solid var(--border-default)', padding: '6px 12px',
             }}>
               <span className={`ds-status-dot ${project.githubConnection.status === 'connected' ? 'ds-status-dot--active' : 'ds-status-dot--inactive'}`} />
-              <span style={{ fontSize: '11px', letterSpacing: '.1em', color: '#8A8A8A' }}>
+              <span style={{ fontSize: '11px', letterSpacing: '.1em', color: 'var(--text-muted)' }}>
                 GITHUB SYNC: {project.githubConnection.status === 'connected' ? 'ACTIVE' : 'INACTIVE'}
               </span>
             </div>

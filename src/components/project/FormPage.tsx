@@ -121,7 +121,7 @@ Rules:
     <div style={{ padding: '32px', maxWidth: '780px', display: 'flex', flexDirection: 'column', gap: '26px' }}>
       <div>
         <div className="ds-section-title">{title}</div>
-        <div style={{ marginTop: '8px', fontSize: '12px', color: '#6A6A6A', lineHeight: 1.6 }}>{subtitle}</div>
+        <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-dim)', lineHeight: 1.6 }}>{subtitle}</div>
       </div>
       {fields.map(f => (
         <label key={f.key} className="ds-form-group">
@@ -142,17 +142,17 @@ Rules:
 
       {/* AI Agent Assist — only shown when agents are passed */}
       {agents && agents.length > 0 && (
-        <div style={{ borderTop: '1px solid #1F1F1F', paddingTop: '24px', marginTop: '4px' }}>
+        <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: '24px', marginTop: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '10px', letterSpacing: '.12em', color: '#FF2A2A', fontWeight: 700 }}>AI ASSIST</span>
+            <span style={{ fontSize: '10px', letterSpacing: '.12em', color: 'var(--accent)', fontWeight: 700 }}>AI ASSIST</span>
             {hasGithub === false && (
-              <span style={{ fontSize: '10px', color: '#6A6A6A' }}>⚠ No GitHub repo connected</span>
+              <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>⚠ No GitHub repo connected</span>
             )}
             {hasGithub && !hasDeepScan && (
-              <span style={{ fontSize: '10px', color: '#F39C12' }}>⚠ Run a deep scan first for best results</span>
+              <span style={{ fontSize: '10px', color: 'var(--warning)' }}>⚠ Run a deep scan first for best results</span>
             )}
             {hasDeepScan && (
-              <span style={{ fontSize: '10px', color: '#2ECC71' }}>● Deep scan available</span>
+              <span style={{ fontSize: '10px', color: 'var(--success)' }}>● Deep scan available</span>
             )}
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -160,7 +160,7 @@ Rules:
               value={selectedAgent}
               onChange={(e) => setSelectedAgent(e.target.value)}
               style={{
-                background: '#0D0D0D', border: '1px solid #2A2A2A', color: '#B3B3B3',
+                background: 'var(--bg-elevated)', border: '1px solid var(--border-input)', color: 'var(--text-secondary)',
                 padding: '8px 12px', fontSize: '11px', fontFamily: '"JetBrains Mono", monospace',
                 minWidth: '200px',
               }}
@@ -179,12 +179,12 @@ Rules:
             </button>
           </div>
           {aiLoading && (
-            <div style={{ marginTop: '10px', fontSize: '10px', color: '#F39C12', letterSpacing: '.1em' }}>
+            <div style={{ marginTop: '10px', fontSize: '10px', color: 'var(--warning)', letterSpacing: '.1em' }}>
               ● Agent is analyzing repository and project context...
             </div>
           )}
           {aiError && (
-            <div style={{ marginTop: '10px', fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>
+            <div style={{ marginTop: '10px', fontSize: '10px', color: 'var(--accent)', letterSpacing: '.1em' }}>
               ✕ {aiError}
             </div>
           )}
