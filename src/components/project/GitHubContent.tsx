@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 
 export default function GitHubContent({ project }: { project: any }) {
   const router = useRouter();
@@ -217,22 +218,16 @@ export default function GitHubContent({ project }: { project: any }) {
                   <div style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.12em', marginBottom: '12px', fontWeight: 700 }}>
                     AI ARCHITECTURAL ANALYSIS
                   </div>
-                  <pre style={{
-                    fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.7,
-                    margin: 0, fontFamily: '"JetBrains Mono", monospace',
-                    maxHeight: '600px', overflow: 'auto',
-                  }}>
-                    {deepScanResult.aiAnalysis}
-                  </pre>
+                  <div style={{ maxHeight: '600px', overflow: 'auto' }}>
+                    <MarkdownRenderer content={deepScanResult.aiAnalysis} />
+                  </div>
                 </div>
               )}
 
               {deepScanResult.architectureSummary && !deepScanResult.aiAnalysis && (
                 <div style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F', marginBottom: '12px' }}>
                   <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '8px' }}>ARCHITECTURE SUMMARY</div>
-                  <pre style={{ fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: 0, fontFamily: '"JetBrains Mono", monospace' }}>
-                    {deepScanResult.architectureSummary}
-                  </pre>
+                  <MarkdownRenderer content={deepScanResult.architectureSummary} />
                 </div>
               )}
               {deepScanResult.techStackSummary && (
@@ -372,13 +367,9 @@ export default function GitHubContent({ project }: { project: any }) {
                   <div style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.12em', marginBottom: '12px', fontWeight: 700 }}>
                     AI ARCHITECTURAL ANALYSIS
                   </div>
-                  <pre style={{
-                    fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.7,
-                    margin: 0, fontFamily: '"JetBrains Mono", monospace',
-                    maxHeight: '600px', overflow: 'auto',
-                  }}>
-                    {project.repositoryKnowledge.aiAnalysis}
-                  </pre>
+                  <div style={{ maxHeight: '600px', overflow: 'auto' }}>
+                    <MarkdownRenderer content={project.repositoryKnowledge.aiAnalysis} />
+                  </div>
                 </div>
               )}
 
@@ -386,9 +377,7 @@ export default function GitHubContent({ project }: { project: any }) {
               {project.repositoryKnowledge.architectureSummary && !project.repositoryKnowledge.aiAnalysis && (
                 <div style={{ background: '#0D0D0D', padding: '14px', border: '1px solid #1F1F1F', marginBottom: '12px' }}>
                   <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '8px' }}>ARCHITECTURE SUMMARY</div>
-                  <pre style={{ fontSize: '11px', color: '#B3B3B3', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: 0, fontFamily: '"JetBrains Mono", monospace' }}>
-                    {project.repositoryKnowledge.architectureSummary}
-                  </pre>
+                  <MarkdownRenderer content={project.repositoryKnowledge.architectureSummary} />
                 </div>
               )}
 
