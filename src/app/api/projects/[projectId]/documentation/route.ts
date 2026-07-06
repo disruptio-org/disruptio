@@ -236,7 +236,8 @@ ${contextBlock}
 Generate the complete document in markdown format. Use proper headers (##, ###), bullet points, code blocks, and mermaid diagrams where appropriate. Be specific — reference actual file names, models, routes, and components from the project context. Do not use placeholders.`;
 
   try {
-    const { client, model } = await createProjectClient(projectId);
+    const client = createProjectClient(project);
+    const model = project.aiModel || 'gpt-4o';
 
     const completion = await client.chat.completions.create({
       model,
