@@ -16,8 +16,8 @@ export async function POST(
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { prompt, autoGenerate, agentId } = await req.json();
-  if (!prompt && !autoGenerate) return NextResponse.json({ error: 'prompt or autoGenerate is required' }, { status: 400 });
+  const { prompt, planOnly, autoGenerate, screenTitle, screenDescription: screenDesc, screenIndex, totalScreens, agentId } = await req.json();
+  if (!prompt && !planOnly && !autoGenerate) return NextResponse.json({ error: 'prompt, planOnly, or autoGenerate is required' }, { status: 400 });
 
   // Load story
   const story = await prisma.userStory.findUnique({ where: { id: storyId }, include: { feature: true } });
@@ -112,9 +112,8 @@ ${JSON.stringify(story.gherkinScenarios || [], null, 2)}
       return h;
     };
 
-    // ─── AUTO-GENERATE: Plan screens first, then generate each ───
-    if (autoGenerate) {
-      // Step 1: Plan which screens to generate
+    // ─── PLAN ONLY: Return screen list without generating HTML ───
+    if (planOnly) {
       const planPrompt = `Analyze this user story and identify the DISTINCT screens/views needed.
 
 ${storyContext}
@@ -152,76 +151,18 @@ Example output:
         screens = [{ title: `${story.feature.title} — Main View`, description: `Main screen for: ${story.action}` }];
       }
 
-      // Step 2: Generate each screen
-      const existingMockups = (story.mockups as any[]) || [];
-      const newMockups: any[] = [];
-
-      for (let i = 0; i < screens.length; i++) {
-        const screen = screens[i];
-        const screenPrompt = `Generate a COMPLETE, self-contained HTML page for this specific screen:
-
-# Screen: ${screen.title}
-${screen.description}
-
-This is screen ${i + 1} of ${screens.length} in the user flow for this story.
-
-${storyContext}
-${designContext}
-${uxContext}
-
-# STRICT RULES
-1. Return ONLY valid HTML — no markdown, no explanation, no backticks
-2. Copy the CSS classes and variables from the application CSS above into a <style> block
-3. Include: <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-4. Use the EXACT same CSS classes as the real app (ds-card, ds-btn-primary, ds-input, ds-sidebar, ds-sidebar-item, etc.)
-5. The sidebar should have these exact items: Overview, Product Context, Personas, UX/UI Guidelines, Design Style, Technology View, GitHub Repository, Agents, Features, Documentation, Settings
-6. Use REALISTIC data — actual labels matching the user story context. No placeholder text.
-7. Include hover effects and transitions matching the CSS
-8. The layout must be: fixed sidebar (236px) + scrollable main content
-9. The HTML must start with <!DOCTYPE html>
-10. DO NOT include any text before or after the HTML`;
-
-        const screenCompletion = await safeCompletion(client, {
-          model,
-          messages: makeMessages(systemPrompt, screenPrompt),
-          temperature: 0.4,
-          max_completion_tokens: 16384,
-        });
-
-        const html = cleanHtml(screenCompletion.choices[0]?.message?.content || '');
-        if (html) {
-          newMockups.push({
-            id: `screen-${Date.now()}-${i}`,
-            title: screen.title,
-            description: screen.description,
-            html,
-            status: 'draft',
-            order: existingMockups.length + i,
-            createdAt: new Date().toISOString(),
-          });
-        }
-      }
-
-      if (newMockups.length === 0) {
-        return NextResponse.json({ error: 'AI failed to generate any screens' }, { status: 500 });
-      }
-
-      const updatedMockups = [...existingMockups, ...newMockups];
-      await prisma.userStory.update({
-        where: { id: storyId },
-        data: { mockups: updatedMockups },
-      });
-
-      return NextResponse.json({ ok: true, mockups: newMockups, total: updatedMockups.length });
+      return NextResponse.json({ ok: true, screens });
     }
 
-    // ─── MANUAL PROMPT: Generate a single screen ───
+    // ─── GENERATE A SINGLE SCREEN ───
     const screenDescription = prompt || 'Generate the main screen for this user story.';
+    const screenCtx = (screenTitle && screenDesc)
+      ? `# Screen: ${screenTitle}\n${screenDesc}\n\nThis is screen ${(screenIndex || 0) + 1} of ${totalScreens || 1} in the user flow.`
+      : `# Screen Description\n${screenDescription}`;
 
     const userMessage = `Generate a COMPLETE, self-contained HTML page for this screen:
 
-# Screen Description
-${screenDescription}
+${screenCtx}
 
 ${storyContext}
 ${designContext}
@@ -251,11 +192,14 @@ ${uxContext}
       return NextResponse.json({ error: 'AI returned empty response' }, { status: 500 });
     }
 
+    const mockupTitle = screenTitle || (prompt && prompt.length > 60 ? prompt.slice(0, 57) + '...' : prompt || 'Generated Screen');
+    const mockupDesc = screenDesc || prompt || 'Custom screen';
+
     const existingMockups = (story.mockups as any[]) || [];
     const newMockup = {
       id: `screen-${Date.now()}`,
-      title: prompt && prompt.length > 60 ? prompt.slice(0, 57) + '...' : prompt || 'Generated Screen',
-      description: prompt || 'Custom screen',
+      title: mockupTitle,
+      description: mockupDesc,
       html,
       status: 'draft',
       order: existingMockups.length,

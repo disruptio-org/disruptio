@@ -534,40 +534,79 @@ ${storyContext}`,
     const mockups: any[] = story.mockups || [];
 
     const mockupsApiUrl = `/api/projects/${project.id}/features/${story.featureId}/stories/${story.id}/mockups`;
+    const [generatingProgress, setGeneratingProgress] = useState('');
 
     const generateMockup = async (customPrompt?: string) => {
+      const isAuto = !customPrompt && !mockupPrompt.trim();
       setGeneratingMockup(true);
       setMockupError('');
+      setGeneratingProgress('');
+
       try {
-        const res = await fetch(mockupsApiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: customPrompt || mockupPrompt || undefined,
-            autoGenerate: !customPrompt && !mockupPrompt.trim(),
-            agentId: mockupAgent || undefined,
-          }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          // Handle both single mockup and multi-screen auto-generate
-          if (data.mockups && Array.isArray(data.mockups)) {
-            const updated = [...mockups, ...data.mockups];
-            setStory((prev: any) => ({ ...prev, mockups: updated }));
-            setActiveMockup(mockups.length); // jump to first new one
-          } else if (data.mockup) {
-            const updated = [...mockups, data.mockup];
-            setStory((prev: any) => ({ ...prev, mockups: updated }));
-            setActiveMockup(updated.length - 1);
+        if (isAuto) {
+          // STEP 1: Plan screens
+          setGeneratingProgress('PLANNING SCREENS...');
+          const planRes = await fetch(mockupsApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ planOnly: true, agentId: mockupAgent || undefined }),
+          });
+          const planData = await planRes.json();
+          if (!planRes.ok) { setMockupError(planData.error || 'Planning failed'); setGeneratingMockup(false); return; }
+
+          const screens: { title: string; description: string }[] = planData.screens || [];
+          if (screens.length === 0) { setMockupError('No screens planned'); setGeneratingMockup(false); return; }
+
+          // STEP 2: Generate each screen one by one
+          let currentMockups = [...mockups];
+          for (let i = 0; i < screens.length; i++) {
+            setGeneratingProgress(`GENERATING SCREEN ${i + 1} OF ${screens.length}: ${screens[i].title.toUpperCase()}`);
+            const screenRes = await fetch(mockupsApiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                prompt: `${screens[i].title}: ${screens[i].description}`,
+                screenTitle: screens[i].title,
+                screenDescription: screens[i].description,
+                screenIndex: i,
+                totalScreens: screens.length,
+                agentId: mockupAgent || undefined,
+              }),
+            });
+            const screenData = await screenRes.json();
+            if (screenRes.ok && screenData.mockup) {
+              currentMockups = [...currentMockups, screenData.mockup];
+              setStory((prev: any) => ({ ...prev, mockups: currentMockups }));
+              if (i === 0) setActiveMockup(mockups.length);
+            }
           }
           setMockupPrompt('');
         } else {
-          setMockupError(data.error || 'Generation failed');
+          // Single screen generation
+          setGeneratingProgress('GENERATING MOCKUP...');
+          const res = await fetch(mockupsApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: customPrompt || mockupPrompt || undefined,
+              agentId: mockupAgent || undefined,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok && data.mockup) {
+            const updated = [...mockups, data.mockup];
+            setStory((prev: any) => ({ ...prev, mockups: updated }));
+            setActiveMockup(updated.length - 1);
+            setMockupPrompt('');
+          } else {
+            setMockupError(data.error || 'Generation failed');
+          }
         }
       } catch (err: any) {
         setMockupError(err.message || 'Network error');
       }
       setGeneratingMockup(false);
+      setGeneratingProgress('');
     };
 
     const updateMockupStatus = async (mockupId: string, status: string) => {
@@ -705,7 +744,7 @@ ${storyContext}`,
           {generatingMockup && (
             <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>GENERATING MOCKUP — THIS MAY TAKE A MINUTE...</span>
+              <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>{generatingProgress || 'GENERATING MOCKUP...'}</span>
             </div>
           )}
         </div>
