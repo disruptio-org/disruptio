@@ -2,9 +2,19 @@ import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import FormPage from '@/components/project/FormPage';
 
+export const dynamic = 'force-dynamic';
+
 export default async function TechnologyPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await prisma.project.findUnique({ where: { id: projectId }, include: { technology: true } });
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      technology: true,
+      agents: { where: { enabled: true }, select: { id: true, name: true, agentType: true } },
+      repositoryKnowledge: { select: { id: true } },
+      githubConnection: { select: { id: true } },
+    },
+  });
   if (!project) notFound();
   const data = project.technology || {};
   return (
@@ -27,6 +37,9 @@ export default async function TechnologyPage({ params }: { params: Promise<{ pro
         { key: 'openQuestions', label: 'OPEN QUESTIONS', rows: 3 },
       ]}
       initialData={data}
+      agents={project.agents}
+      hasDeepScan={!!project.repositoryKnowledge?.id}
+      hasGithub={!!project.githubConnection?.id}
     />
   );
 }
