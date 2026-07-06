@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { id: 'github', label: 'GitHub Repository' },
   { id: 'agents', label: 'Agents' },
   { id: 'features', label: 'Features' },
+  { id: 'documentation', label: 'Documentation' },
   { id: 'settings', label: 'Settings' },
 ];
 

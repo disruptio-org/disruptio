@@ -76,6 +76,7 @@ model Project {
   agents          AgentConfiguration[]
   repositoryKnowledge RepositoryKnowledge?
   features        Feature[]
+  documentation   ProjectDocumentation[]
 }
 
 model ProjectPersona {
@@ -295,4 +296,20 @@ model UserStory {
   updatedAt          DateTime @updatedAt
 
   feature            Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
+}
+
+model ProjectDocumentation {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  content     String   @db.Text
+  docType     String   @default("general")  // general, architecture, api, data-flow, components
+  agentId     String?
+  metadata    Json?
+  version     Int      @default(1)
+  status      String   @default("generated") // generating, generated, outdated
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
