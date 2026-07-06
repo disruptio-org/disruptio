@@ -6,7 +6,6 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 interface DocType {
   id: string;
   label: string;
-  emoji: string;
 }
 
 interface Doc {
@@ -31,6 +30,8 @@ export default function DocumentationContent({ project }: DocumentationContentPr
   const [docTypes, setDocTypes] = useState<DocType[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
+  const [generatingAll, setGeneratingAll] = useState(false);
+  const [generatingAllProgress, setGeneratingAllProgress] = useState<{ current: number; total: number; currentType: string } | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<Doc | null>(null);
   const [selectedAgent, setSelectedAgent] = useState('');
   const [error, setError] = useState('');
@@ -63,7 +64,6 @@ export default function DocumentationContent({ project }: DocumentationContentPr
       });
       const data = await res.json();
       if (res.ok) {
-        setSelectedDoc(data.doc);
         await fetchDocs();
       } else {
         setError(data.error || 'Generation failed');
@@ -74,6 +74,37 @@ export default function DocumentationContent({ project }: DocumentationContentPr
     setGenerating(null);
   };
 
+  const generateAll = async () => {
+    if (!selectedAgent) {
+      setError('Please select an agent first');
+      return;
+    }
+    setGeneratingAll(true);
+    setError('');
+    for (let i = 0; i < docTypes.length; i++) {
+      const dt = docTypes[i];
+      setGeneratingAllProgress({ current: i + 1, total: docTypes.length, currentType: dt.label });
+      setGenerating(dt.id);
+      try {
+        const res = await fetch(`/api/projects/${project.id}/documentation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ docType: dt.id, agentId: selectedAgent }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(`Failed to generate ${dt.label}: ${data.error || 'Unknown error'}`);
+        }
+        await fetchDocs();
+      } catch (err: any) {
+        setError(`Error generating ${dt.label}: ${err.message}`);
+      }
+    }
+    setGenerating(null);
+    setGeneratingAll(false);
+    setGeneratingAllProgress(null);
+  };
+
   const deleteDoc = async (docId: string) => {
     try {
       await fetch(`/api/projects/${project.id}/documentation?docId=${docId}`, { method: 'DELETE' });
@@ -82,8 +113,6 @@ export default function DocumentationContent({ project }: DocumentationContentPr
       setDeleteConfirm(null);
     } catch { /* ignore */ }
   };
-
-  const labelStyle: React.CSSProperties = { fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' };
 
   if (loading) {
     return (
@@ -136,44 +165,83 @@ export default function DocumentationContent({ project }: DocumentationContentPr
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Header */}
-      <div>
-        <h2 style={{ fontSize: '14px', letterSpacing: '.15em', color: '#FFFFFF', fontWeight: 700, margin: 0 }}>DOCUMENTATION</h2>
-        <p style={{ fontSize: '11px', color: '#5A5A5A', marginTop: '6px', lineHeight: 1.6 }}>
-          Generate comprehensive product documentation using AI. Select an agent and a documentation type to begin.
-        </p>
+      {/* Header with Generate All */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h2 style={{ fontSize: '14px', letterSpacing: '.15em', color: '#FFFFFF', fontWeight: 700, margin: 0 }}>DOCUMENTATION</h2>
+          <p style={{ fontSize: '11px', color: '#5A5A5A', marginTop: '6px', lineHeight: 1.6 }}>
+            Generate comprehensive product documentation using AI. Select an agent to shape the output.
+          </p>
+        </div>
+        <button
+          className="ds-btn-primary"
+          onClick={generateAll}
+          disabled={generatingAll || !!generating}
+          style={{ fontSize: '10px', letterSpacing: '.1em', padding: '8px 20px', whiteSpace: 'nowrap' }}
+        >
+          {generatingAll ? '[ GENERATING ALL... ]' : '[ GENERATE ALL DOCUMENTATION ]'}
+        </button>
       </div>
 
       {/* Agent selector */}
-      <div className="ds-card" style={{ padding: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={labelStyle}>AI AGENT</div>
-          <select
-            className="ds-input"
-            style={{ width: '300px' }}
-            value={selectedAgent}
-            onChange={(e) => setSelectedAgent(e.target.value)}
-          >
-            <option value="">Select agent...</option>
-            {agents.map((a) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
-          </select>
-          <span style={{ fontSize: '10px', color: '#3A3A3A' }}>
-            Agent context will shape the generated documentation
-          </span>
-        </div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '16px',
+        padding: '14px 20px', background: '#0D0D0D', border: '1px solid #1F1F1F',
+      }}>
+        <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', whiteSpace: 'nowrap' }}>AI AGENT</div>
+        <select
+          className="ds-input"
+          style={{ width: '300px' }}
+          value={selectedAgent}
+          onChange={(e) => setSelectedAgent(e.target.value)}
+        >
+          <option value="">Select agent...</option>
+          {agents.map((a) => (
+            <option key={a.id} value={a.id}>{a.name}</option>
+          ))}
+        </select>
+        <span style={{ fontSize: '10px', color: '#3A3A3A' }}>
+          Agent context will shape the generated documentation
+        </span>
       </div>
+
+      {/* Generate All Progress */}
+      {generatingAllProgress && (
+        <div style={{
+          padding: '12px 20px', background: '#0D0D0D', border: '1px solid #FF2A2A33',
+          display: 'flex', alignItems: 'center', gap: '16px',
+        }}>
+          <div className="ds-spinner" style={{
+            width: '14px', height: '14px', border: '2px solid #FF2A2A33',
+            borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'spin 1s linear infinite',
+            flexShrink: 0,
+          }} />
+          <span style={{ fontSize: '11px', color: '#FF2A2A', letterSpacing: '.08em' }}>
+            GENERATING {generatingAllProgress.current}/{generatingAllProgress.total}
+          </span>
+          <span style={{ fontSize: '10px', color: '#5A5A5A' }}>
+            {generatingAllProgress.currentType}
+          </span>
+          {/* Progress bar */}
+          <div style={{ flex: 1, height: '3px', background: '#1A1A1A', position: 'relative' }}>
+            <div style={{
+              position: 'absolute', left: 0, top: 0, height: '100%',
+              width: `${(generatingAllProgress.current / generatingAllProgress.total) * 100}%`,
+              background: '#FF2A2A', transition: 'width 0.5s ease',
+            }} />
+          </div>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
         <div style={{ padding: '10px 16px', background: '#1A0808', border: '1px solid #FF2A2A33', fontSize: '11px', color: '#FF2A2A' }}>
-          ✕ {error}
+          {error}
         </div>
       )}
 
-      {/* Doc type cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+      {/* Document rows — scrollable list like Agents page */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {docTypes.map((dt) => {
           const existingDoc = docs.find(d => d.docType === dt.id);
           const isGenerating = generating === dt.id;
@@ -181,80 +249,101 @@ export default function DocumentationContent({ project }: DocumentationContentPr
           return (
             <div
               key={dt.id}
-              className="ds-card"
               style={{
-                padding: '20px',
+                display: 'flex', alignItems: 'center', gap: '16px',
+                padding: '14px 20px', background: '#0D0D0D', border: '1px solid #1F1F1F',
                 cursor: existingDoc && !isGenerating ? 'pointer' : 'default',
-                borderColor: existingDoc ? '#2ECC7133' : '#1F1F1F',
-                transition: 'border-color .15s ease',
-                position: 'relative',
+                transition: 'border-color .15s ease, background .15s ease',
+                position: 'relative', overflow: 'hidden',
               }}
               onClick={() => existingDoc && !isGenerating && setSelectedDoc(existingDoc)}
+              onMouseEnter={(e) => { if (existingDoc) e.currentTarget.style.borderColor = '#2A2A2A'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1F1F1F'; }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>{dt.emoji}</span>
-                  <span style={{ fontSize: '12px', color: '#FFFFFF', fontWeight: 600, letterSpacing: '.06em' }}>{dt.label}</span>
-                </div>
-                {existingDoc && (
-                  <span style={{ fontSize: '9px', color: '#2ECC71', letterSpacing: '.1em', border: '1px solid #2ECC7133', padding: '2px 8px' }}>
-                    v{existingDoc.version}
-                  </span>
-                )}
-              </div>
-
+              {/* Status indicator */}
               {existingDoc ? (
-                <div style={{ fontSize: '10px', color: '#5A5A5A', lineHeight: 1.5 }}>
-                  Last updated: {new Date(existingDoc.updatedAt).toLocaleString()}
-                  <div style={{ marginTop: '8px', display: 'flex', gap: '6px' }}>
+                <span style={{
+                  fontSize: '9px', color: '#2ECC71', letterSpacing: '.1em',
+                  border: '1px solid #2ECC7133', padding: '2px 10px',
+                  whiteSpace: 'nowrap',
+                }}>
+                  v{existingDoc.version}
+                </span>
+              ) : (
+                <span style={{
+                  fontSize: '9px', color: '#3A3A3A', letterSpacing: '.1em',
+                  border: '1px solid #1F1F1F', padding: '2px 10px',
+                  whiteSpace: 'nowrap',
+                }}>
+                  PENDING
+                </span>
+              )}
+
+              {/* Doc type name */}
+              <span style={{
+                fontSize: '12px', color: existingDoc ? '#FFFFFF' : '#5A5A5A',
+                fontWeight: 600, letterSpacing: '.04em', flex: 1,
+              }}>
+                {dt.label}
+              </span>
+
+              {/* Last updated */}
+              {existingDoc && (
+                <span style={{ fontSize: '9px', color: '#3A3A3A', whiteSpace: 'nowrap' }}>
+                  {new Date(existingDoc.updatedAt).toLocaleDateString()} {new Date(existingDoc.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                {deleteConfirm === existingDoc?.id ? (
+                  <>
                     <button
-                      className="ds-btn-primary ds-btn-sm"
-                      onClick={(e) => { e.stopPropagation(); generate(dt.id); }}
-                      disabled={isGenerating}
-                      style={{ fontSize: '9px' }}
+                      style={{ fontSize: '9px', color: '#FF2A2A', border: '1px solid #FF2A2A', background: 'transparent', cursor: 'pointer', padding: '3px 10px', letterSpacing: '.05em' }}
+                      onClick={() => existingDoc && deleteDoc(existingDoc.id)}
                     >
-                      {isGenerating ? '[ GENERATING... ]' : '[ REGENERATE ]'}
+                      CONFIRM
                     </button>
-                    {deleteConfirm === existingDoc.id ? (
-                      <div style={{ display: 'flex', gap: '4px' }} onClick={(e) => e.stopPropagation()}>
-                        <button className="ds-btn-sm" style={{ fontSize: '9px', color: '#FF2A2A', border: '1px solid #FF2A2A', background: 'transparent', cursor: 'pointer', padding: '2px 8px' }} onClick={() => deleteDoc(existingDoc.id)}>CONFIRM</button>
-                        <button className="ds-btn-sm" style={{ fontSize: '9px', color: '#5A5A5A', border: '1px solid #2A2A2A', background: 'transparent', cursor: 'pointer', padding: '2px 8px' }} onClick={() => setDeleteConfirm(null)}>CANCEL</button>
-                      </div>
-                    ) : (
+                    <button
+                      style={{ fontSize: '9px', color: '#5A5A5A', border: '1px solid #2A2A2A', background: 'transparent', cursor: 'pointer', padding: '3px 10px', letterSpacing: '.05em' }}
+                      onClick={() => setDeleteConfirm(null)}
+                    >
+                      CANCEL
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {existingDoc && (
                       <button
-                        className="ds-btn-sm"
-                        onClick={(e) => { e.stopPropagation(); setDeleteConfirm(existingDoc.id); }}
-                        style={{ fontSize: '9px', color: '#FF2A2A', border: '1px solid #FF2A2A33', background: 'transparent', cursor: 'pointer', padding: '2px 8px' }}
+                        style={{ fontSize: '9px', color: '#FF2A2A', border: '1px solid #FF2A2A33', background: 'transparent', cursor: 'pointer', padding: '3px 10px', letterSpacing: '.05em' }}
+                        onClick={() => setDeleteConfirm(existingDoc.id)}
                       >
                         DELETE
                       </button>
                     )}
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div style={{ fontSize: '10px', color: '#3A3A3A', marginBottom: '10px' }}>
-                    Not generated yet
-                  </div>
-                  <button
-                    className="ds-btn-primary ds-btn-sm"
-                    onClick={(e) => { e.stopPropagation(); generate(dt.id); }}
-                    disabled={isGenerating}
-                    style={{ fontSize: '9px' }}
-                  >
-                    {isGenerating ? '[ GENERATING... ]' : '[ GENERATE ]'}
-                  </button>
-                </div>
-              )}
+                    <button
+                      className="ds-btn-primary"
+                      onClick={() => generate(dt.id)}
+                      disabled={isGenerating || generatingAll}
+                      style={{ fontSize: '9px', padding: '3px 12px', letterSpacing: '.05em' }}
+                    >
+                      {isGenerating ? 'GENERATING...' : existingDoc ? 'REGENERATE' : 'GENERATE'}
+                    </button>
+                  </>
+                )}
+              </div>
 
               {/* Generating overlay */}
               {isGenerating && (
                 <div style={{
                   position: 'absolute', inset: 0, background: '#0A0A0AE0',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexDirection: 'column', gap: '8px',
+                  gap: '10px',
                 }}>
-                  <div className="ds-spinner" style={{ width: '20px', height: '20px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  <div className="ds-spinner" style={{
+                    width: '14px', height: '14px', border: '2px solid #FF2A2A33',
+                    borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'spin 1s linear infinite',
+                  }} />
                   <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.15em' }}>GENERATING...</span>
                 </div>
               )}
@@ -262,37 +351,6 @@ export default function DocumentationContent({ project }: DocumentationContentPr
           );
         })}
       </div>
-
-      {/* Existing docs list (if more than doc types) */}
-      {docs.length > 0 && (
-        <div className="ds-card" style={{ padding: '20px' }}>
-          <div className="ds-label" style={{ marginBottom: '12px' }}>GENERATED DOCUMENTS ({docs.length})</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {docs.map((d) => (
-              <div
-                key={d.id}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px',
-                  background: '#0D0D0D', border: '1px solid #1F1F1F', cursor: 'pointer',
-                  transition: 'border-color .15s ease',
-                }}
-                onClick={() => setSelectedDoc(d)}
-              >
-                <span style={{ fontSize: '14px' }}>
-                  {docTypes.find(dt => dt.id === d.docType)?.emoji || '📄'}
-                </span>
-                <span style={{ fontSize: '12px', color: '#B3B3B3', flex: 1 }}>{d.title}</span>
-                <span style={{ fontSize: '9px', color: '#5A5A5A', fontFamily: '"JetBrains Mono", monospace' }}>
-                  v{d.version}
-                </span>
-                <span style={{ fontSize: '9px', color: '#3A3A3A' }}>
-                  {new Date(d.updatedAt).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Spinner keyframes */}
       <style jsx>{`

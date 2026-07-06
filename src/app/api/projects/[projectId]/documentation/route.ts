@@ -5,11 +5,11 @@ import prisma from '@/lib/prisma';
 import { createProjectClient, safeCompletion } from '@/lib/openai';
 
 const DOC_TYPES = [
-  { id: 'architecture', label: 'Architecture Overview', emoji: '🏗️' },
-  { id: 'api', label: 'API Reference & Workflows', emoji: '🔌' },
-  { id: 'data-flow', label: 'Data Flow & Models', emoji: '📊' },
-  { id: 'components', label: 'Component Map', emoji: '🧩' },
-  { id: 'general', label: 'Product Overview', emoji: '📋' },
+  { id: 'architecture', label: 'Architecture Overview' },
+  { id: 'api', label: 'API Reference & Workflows' },
+  { id: 'data-flow', label: 'Data Flow & Models' },
+  { id: 'components', label: 'Component Map' },
+  { id: 'general', label: 'Product Overview' },
 ];
 
 /**
