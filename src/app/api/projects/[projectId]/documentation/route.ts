@@ -239,11 +239,11 @@ Generate the complete document in markdown format. Use proper headers (##, ###),
     const client = createProjectClient(project);
     const model = project.aiModel || 'gpt-4o';
 
-    // Reasoning models (o1, o3, o4) don't support the 'system' role.
-    // For those models, merge system instructions into the user message.
-    const isReasoningModel = /^(o1|o3|o4)/.test(model);
+    // Models that don't support the 'system' role or behave differently with it.
+    // For these, merge system instructions into the user message.
+    const needsSystemMerge = /^(o1|o3|o4|gpt-5)/.test(model);
 
-    const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = isReasoningModel
+    const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = needsSystemMerge
       ? [{ role: 'user', content: `${systemPrompt}\n\n---\n\n${userMessage}` }]
       : [
           { role: 'system', content: systemPrompt },
