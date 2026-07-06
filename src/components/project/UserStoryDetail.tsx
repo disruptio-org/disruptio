@@ -15,8 +15,9 @@ const TABS = [
   { key: 'requirements', label: 'REQUIREMENTS', num: '02' },
   { key: 'acceptance', label: 'ACCEPTANCE CRITERIA', num: '03' },
   { key: 'gherkin', label: 'GHERKIN SCENARIOS', num: '04' },
-  { key: 'techreview', label: 'TECH REVIEW', num: '05' },
-  { key: 'planning', label: 'PLANNING', num: '06' },
+  { key: 'mockups', label: 'MOCKUPS', num: '05' },
+  { key: 'techreview', label: 'TECH REVIEW', num: '06' },
+  { key: 'planning', label: 'PLANNING', num: '07' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -30,7 +31,7 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '') as TabKey;
-      if (['story', 'requirements', 'acceptance', 'gherkin', 'techreview', 'planning'].includes(hash)) return hash;
+      if (['story', 'requirements', 'acceptance', 'gherkin', 'mockups', 'techreview', 'planning'].includes(hash)) return hash;
     }
     return 'story';
   });
@@ -518,6 +519,395 @@ ${storyContext}`,
   };
 
   // --- TAB 6: PLANNING ---
+  // ── MOCKUPS TAB ──
+  const MockupsTab = () => {
+    const [mockupPrompt, setMockupPrompt] = useState('');
+    const [mockupAgent, setMockupAgent] = useState('');
+    const [generatingMockup, setGeneratingMockup] = useState(false);
+    const [mockupError, setMockupError] = useState('');
+    const [activeMockup, setActiveMockup] = useState(0);
+    const [editingHtml, setEditingHtml] = useState(false);
+    const [editHtmlValue, setEditHtmlValue] = useState('');
+    const [fullscreen, setFullscreen] = useState(false);
+    const [viewportSize, setViewportSize] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+    const mockups: any[] = story.mockups || [];
+
+    const mockupsApiUrl = `/api/projects/${project.id}/features/${story.featureId}/stories/${story.id}/mockups`;
+
+    const generateMockup = async () => {
+      if (!mockupPrompt.trim()) return;
+      setGeneratingMockup(true);
+      setMockupError('');
+      try {
+        const res = await fetch(mockupsApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: mockupPrompt, agentId: mockupAgent || undefined }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const updated = [...mockups, data.mockup];
+          setStory((prev: any) => ({ ...prev, mockups: updated }));
+          setActiveMockup(updated.length - 1);
+          setMockupPrompt('');
+        } else {
+          setMockupError(data.error || 'Generation failed');
+        }
+      } catch (err: any) {
+        setMockupError(err.message || 'Network error');
+      }
+      setGeneratingMockup(false);
+    };
+
+    const updateMockupStatus = async (mockupId: string, status: string) => {
+      try {
+        await fetch(mockupsApiUrl, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mockupId, status }),
+        });
+        setStory((prev: any) => ({
+          ...prev,
+          mockups: (prev.mockups || []).map((m: any) => m.id === mockupId ? { ...m, status } : m),
+        }));
+      } catch { /* silent */ }
+    };
+
+    const saveHtmlEdit = async (mockupId: string) => {
+      try {
+        await fetch(mockupsApiUrl, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mockupId, html: editHtmlValue }),
+        });
+        setStory((prev: any) => ({
+          ...prev,
+          mockups: (prev.mockups || []).map((m: any) => m.id === mockupId ? { ...m, html: editHtmlValue } : m),
+        }));
+        setEditingHtml(false);
+      } catch { /* silent */ }
+    };
+
+    const deleteMockup = async (mockupId: string) => {
+      try {
+        await fetch(`${mockupsApiUrl}?mockupId=${mockupId}`, { method: 'DELETE' });
+        const updated = mockups.filter((m: any) => m.id !== mockupId);
+        setStory((prev: any) => ({ ...prev, mockups: updated }));
+        if (activeMockup >= updated.length) setActiveMockup(Math.max(0, updated.length - 1));
+      } catch { /* silent */ }
+    };
+
+    const currentMockup = mockups[activeMockup];
+    const MOCKUP_STATUS_COLORS: Record<string, string> = { draft: '#6A6A6A', approved: '#2ECC71', rejected: '#FF2A2A' };
+    const viewportWidths = { desktop: '100%', tablet: '768px', mobile: '375px' };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Generation Controls */}
+        <div className="ds-card" style={{ padding: '20px' }}>
+          <div className="ds-label" style={{ marginBottom: '12px' }}>GENERATE MOCKUP</div>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>SCREEN DESCRIPTION</div>
+              <textarea
+                className="ds-input"
+                value={mockupPrompt}
+                onChange={(e) => setMockupPrompt(e.target.value)}
+                placeholder="Describe the screen you want to generate... (e.g., 'Dashboard with a sidebar showing feature list and a main panel with user story cards')"
+                rows={2}
+                style={{ width: '100%', resize: 'vertical', fontSize: '11px' }}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>AI AGENT</div>
+              <select
+                className="ds-input"
+                value={mockupAgent}
+                onChange={(e) => setMockupAgent(e.target.value)}
+                style={{ width: '200px', fontSize: '11px' }}
+              >
+                <option value="">Default</option>
+                {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+            <button
+              className="ds-btn-primary"
+              onClick={generateMockup}
+              disabled={generatingMockup || !mockupPrompt.trim()}
+              style={{ fontSize: '10px', letterSpacing: '.1em', padding: '8px 20px', whiteSpace: 'nowrap' }}
+            >
+              {generatingMockup ? '[ GENERATING... ]' : '[ GENERATE MOCKUP ]'}
+            </button>
+          </div>
+          {mockupError && (
+            <div style={{ marginTop: '8px', fontSize: '10px', color: '#FF2A2A' }}>{mockupError}</div>
+          )}
+          {generatingMockup && (
+            <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>GENERATING MOCKUP — THIS MAY TAKE A MINUTE...</span>
+            </div>
+          )}
+        </div>
+
+        {/* Screen Tabs */}
+        {mockups.length > 0 && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', borderBottom: '1px solid #1F1F1F' }}>
+              {mockups.map((m: any, i: number) => (
+                <button
+                  key={m.id}
+                  onClick={() => { setActiveMockup(i); setEditingHtml(false); }}
+                  style={{
+                    padding: '10px 16px', fontSize: '10px', letterSpacing: '.08em',
+                    background: activeMockup === i ? '#141414' : 'transparent',
+                    border: 'none', borderBottom: activeMockup === i ? '2px solid #FF2A2A' : '2px solid transparent',
+                    color: activeMockup === i ? '#FFFFFF' : '#5A5A5A',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span style={{
+                    display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
+                    background: MOCKUP_STATUS_COLORS[m.status] || '#6A6A6A',
+                  }} />
+                  SCREEN {i + 1}
+                </button>
+              ))}
+            </div>
+
+            {/* Current Mockup */}
+            {currentMockup && (
+              <>
+                {/* Controls bar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}>
+                  <span style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.08em', flex: 1 }}>
+                    {currentMockup.description}
+                  </span>
+                  <span style={{
+                    fontSize: '9px', letterSpacing: '.1em', padding: '2px 10px',
+                    border: `1px solid ${MOCKUP_STATUS_COLORS[currentMockup.status]}44`,
+                    color: MOCKUP_STATUS_COLORS[currentMockup.status],
+                  }}>
+                    {currentMockup.status.toUpperCase()}
+                  </span>
+
+                  {/* Viewport toggles */}
+                  <div style={{ display: 'flex', gap: '2px', marginLeft: '8px' }}>
+                    {(['desktop', 'tablet', 'mobile'] as const).map(vp => (
+                      <button
+                        key={vp}
+                        onClick={() => setViewportSize(vp)}
+                        style={{
+                          fontSize: '9px', padding: '3px 8px', letterSpacing: '.05em',
+                          background: viewportSize === vp ? '#1A1A1A' : 'transparent',
+                          border: `1px solid ${viewportSize === vp ? '#FF2A2A' : '#2A2A2A'}`,
+                          color: viewportSize === vp ? '#FF2A2A' : '#5A5A5A',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {vp.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Iframe Preview */}
+                <div className="ds-card" style={{
+                  padding: 0, overflow: 'hidden',
+                  display: 'flex', justifyContent: 'center', background: '#000',
+                }}>
+                  <iframe
+                    srcDoc={currentMockup.html}
+                    sandbox="allow-scripts"
+                    style={{
+                      width: viewportWidths[viewportSize],
+                      maxWidth: '100%',
+                      height: '600px', border: 'none',
+                      transition: 'width 0.3s ease',
+                    }}
+                    title={`Mockup: ${currentMockup.title}`}
+                  />
+                </div>
+
+                {/* Action buttons */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    onClick={() => updateMockupStatus(currentMockup.id, 'approved')}
+                    style={{
+                      fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
+                      background: currentMockup.status === 'approved' ? '#2ECC71' : 'transparent',
+                      border: '1px solid #2ECC71', color: currentMockup.status === 'approved' ? '#000' : '#2ECC71',
+                    }}
+                  >
+                    APPROVE
+                  </button>
+                  <button
+                    onClick={() => updateMockupStatus(currentMockup.id, 'rejected')}
+                    style={{
+                      fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
+                      background: currentMockup.status === 'rejected' ? '#FF2A2A' : 'transparent',
+                      border: '1px solid #FF2A2A', color: currentMockup.status === 'rejected' ? '#FFF' : '#FF2A2A',
+                    }}
+                  >
+                    REJECT
+                  </button>
+                  <button
+                    onClick={() => updateMockupStatus(currentMockup.id, 'draft')}
+                    style={{
+                      fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
+                      background: 'transparent', border: '1px solid #3A3A3A', color: '#5A5A5A',
+                    }}
+                  >
+                    RESET TO DRAFT
+                  </button>
+
+                  <div style={{ flex: 1 }} />
+
+                  <button
+                    onClick={() => {
+                      const w = window.open('', '_blank');
+                      if (w) { w.document.write(currentMockup.html); w.document.close(); }
+                    }}
+                    style={{
+                      fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
+                      background: 'transparent', border: '1px solid #2A2A2A', color: '#B3B3B3',
+                    }}
+                  >
+                    OPEN IN NEW TAB
+                  </button>
+                  <button
+                    onClick={() => setFullscreen(true)}
+                    style={{
+                      fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
+                      background: 'transparent', border: '1px solid #2A2A2A', color: '#B3B3B3',
+                    }}
+                  >
+                    FULLSCREEN
+                  </button>
+                  <button
+                    onClick={() => { setEditingHtml(!editingHtml); setEditHtmlValue(currentMockup.html); }}
+                    style={{
+                      fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
+                      background: editingHtml ? '#1A1A1A' : 'transparent',
+                      border: `1px solid ${editingHtml ? '#FF2A2A' : '#2A2A2A'}`,
+                      color: editingHtml ? '#FF2A2A' : '#B3B3B3',
+                    }}
+                  >
+                    {editingHtml ? 'CLOSE EDITOR' : 'EDIT HTML'}
+                  </button>
+                  <button
+                    onClick={() => { if (confirm('Delete this mockup screen?')) deleteMockup(currentMockup.id); }}
+                    style={{
+                      fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
+                      background: 'transparent', border: '1px solid #FF2A2A33', color: '#FF2A2A',
+                    }}
+                  >
+                    DELETE
+                  </button>
+                </div>
+
+                {/* HTML Editor */}
+                {editingHtml && (
+                  <div className="ds-card" style={{ padding: '16px' }}>
+                    <div className="ds-label" style={{ marginBottom: '8px' }}>HTML SOURCE</div>
+                    <textarea
+                      className="ds-input"
+                      value={editHtmlValue}
+                      onChange={(e) => setEditHtmlValue(e.target.value)}
+                      style={{ width: '100%', height: '300px', fontSize: '10px', fontFamily: '"JetBrains Mono", monospace', lineHeight: 1.5 }}
+                    />
+                    <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                      <button
+                        className="ds-btn-primary"
+                        onClick={() => saveHtmlEdit(currentMockup.id)}
+                        style={{ fontSize: '10px', padding: '6px 16px' }}
+                      >
+                        [ SAVE CHANGES ]
+                      </button>
+                      <button
+                        onClick={() => setEditingHtml(false)}
+                        style={{ fontSize: '10px', padding: '6px 16px', background: 'transparent', border: '1px solid #2A2A2A', color: '#5A5A5A', cursor: 'pointer' }}
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Fullscreen modal */}
+                {fullscreen && (
+                  <div style={{
+                    position: 'fixed', inset: 0, zIndex: 10000,
+                    background: '#000', display: 'flex', flexDirection: 'column',
+                  }}>
+                    <div style={{
+                      padding: '12px 24px', display: 'flex', justifyContent: 'space-between',
+                      alignItems: 'center', background: '#0D0D0D', borderBottom: '1px solid #1F1F1F',
+                    }}>
+                      <span style={{ fontSize: '11px', color: '#FF2A2A', letterSpacing: '.1em', fontWeight: 700 }}>
+                        MOCKUP PREVIEW — SCREEN {activeMockup + 1}
+                      </span>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {(['desktop', 'tablet', 'mobile'] as const).map(vp => (
+                          <button
+                            key={vp}
+                            onClick={() => setViewportSize(vp)}
+                            style={{
+                              fontSize: '9px', padding: '3px 10px',
+                              background: viewportSize === vp ? '#1A1A1A' : 'transparent',
+                              border: `1px solid ${viewportSize === vp ? '#FF2A2A' : '#2A2A2A'}`,
+                              color: viewportSize === vp ? '#FF2A2A' : '#5A5A5A',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {vp.toUpperCase()}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setFullscreen(false)}
+                          style={{ background: '#FF2A2A', border: 'none', color: '#FFF', padding: '5px 16px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', letterSpacing: '.05em' }}
+                        >
+                          [ CLOSE ]
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'center', background: '#080808' }}>
+                      <iframe
+                        srcDoc={currentMockup.html}
+                        sandbox="allow-scripts"
+                        style={{ width: viewportWidths[viewportSize], maxWidth: '100%', height: '100%', border: 'none' }}
+                        title="Fullscreen mockup"
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* Empty state */}
+        {mockups.length === 0 && !generatingMockup && (
+          <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
+            <div style={{ fontSize: '10px', color: '#3A3A3A', letterSpacing: '.15em', marginBottom: '8px' }}>NO MOCKUPS YET</div>
+            <div style={{ fontSize: '11px', color: '#5A5A5A', lineHeight: 1.6 }}>
+              Describe the screen you want above and click Generate Mockup.<br />
+              The AI will create a realistic HTML mockup matching your project design system.
+            </div>
+          </div>
+        )}
+
+        <style jsx>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  };
+
   const PlanningTab = () => {
     const existing = (story.planning || {}) as Partial<PlanningData>;
     const [subtasks, setSubtasks] = useState<SubTask[]>(existing.subtasks || []);
@@ -723,6 +1113,7 @@ ${storyContext}`,
     requirements: RequirementsTab,
     acceptance: AcceptanceTab,
     gherkin: GherkinTab,
+    mockups: MockupsTab,
     techreview: TechReviewTab,
     planning: PlanningTab,
   };

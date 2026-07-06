@@ -289,6 +289,7 @@ model UserStory {
   gherkinScenarios   Json?
   techReview         Json?
   planning           Json?
+  mockups            Json?    // Array of { id, title, description, html, status, order }
   complexity         String   @default("medium")
   status             String   @default("draft")
   order              Int      @default(0)
