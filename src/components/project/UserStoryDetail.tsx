@@ -534,15 +534,18 @@ ${storyContext}`,
 
     const mockupsApiUrl = `/api/projects/${project.id}/features/${story.featureId}/stories/${story.id}/mockups`;
 
-    const generateMockup = async () => {
-      if (!mockupPrompt.trim()) return;
+    const generateMockup = async (customPrompt?: string) => {
       setGeneratingMockup(true);
       setMockupError('');
       try {
         const res = await fetch(mockupsApiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: mockupPrompt, agentId: mockupAgent || undefined }),
+          body: JSON.stringify({
+            prompt: customPrompt || mockupPrompt || undefined,
+            autoGenerate: !customPrompt && !mockupPrompt.trim(),
+            agentId: mockupAgent || undefined,
+          }),
         });
         const data = await res.json();
         if (res.ok) {
@@ -605,34 +608,83 @@ ${storyContext}`,
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Generation Controls */}
         <div className="ds-card" style={{ padding: '20px' }}>
-          <div className="ds-label" style={{ marginBottom: '12px' }}>GENERATE MOCKUP</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div className="ds-label">GENERATE MOCKUP</div>
+            {mockups.length === 0 && (
+              <span style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.08em' }}>
+                Uses user story, requirements, acceptance criteria, and gherkin scenarios as context
+              </span>
+            )}
+          </div>
+
+          {/* Auto-generate from story — shown when no mockups exist */}
+          {mockups.length === 0 && (
+            <div style={{
+              padding: '20px', background: '#0A0A0A', border: '1px solid #1F1F1F',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginBottom: '16px',
+            }}>
+              <div style={{ fontSize: '11px', color: '#B3B3B3', textAlign: 'center', lineHeight: 1.6 }}>
+                Generate the initial mockup based on the user story context already defined in this pipeline.
+              </div>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>AI AGENT</div>
+                  <select
+                    className="ds-input"
+                    value={mockupAgent}
+                    onChange={(e) => setMockupAgent(e.target.value)}
+                    style={{ width: '200px', fontSize: '11px' }}
+                  >
+                    <option value="">Default</option>
+                    {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                </div>
+                <button
+                  className="ds-btn-primary"
+                  onClick={() => generateMockup()}
+                  disabled={generatingMockup}
+                  style={{ fontSize: '10px', letterSpacing: '.1em', padding: '10px 24px', whiteSpace: 'nowrap', marginTop: '14px' }}
+                >
+                  {generatingMockup ? '[ GENERATING... ]' : '[ GENERATE FROM STORY ]'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Custom prompt — always available for additional screens */}
           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>SCREEN DESCRIPTION</div>
+              <div style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>
+                {mockups.length > 0 ? 'ADD ANOTHER SCREEN' : 'OR DESCRIBE A SPECIFIC SCREEN'}
+              </div>
               <textarea
                 className="ds-input"
                 value={mockupPrompt}
                 onChange={(e) => setMockupPrompt(e.target.value)}
-                placeholder="Describe the screen you want to generate... (e.g., 'Dashboard with a sidebar showing feature list and a main panel with user story cards')"
+                placeholder={mockups.length > 0
+                  ? "Describe the next screen to add... (e.g., 'Settings page with form fields for project configuration')"
+                  : "Optionally describe a specific screen instead... (e.g., 'Dashboard with sidebar showing feature list')"}
                 rows={2}
                 style={{ width: '100%', resize: 'vertical', fontSize: '11px' }}
               />
             </div>
-            <div>
-              <div style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>AI AGENT</div>
-              <select
-                className="ds-input"
-                value={mockupAgent}
-                onChange={(e) => setMockupAgent(e.target.value)}
-                style={{ width: '200px', fontSize: '11px' }}
-              >
-                <option value="">Default</option>
-                {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </div>
+            {mockups.length > 0 && (
+              <div>
+                <div style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>AI AGENT</div>
+                <select
+                  className="ds-input"
+                  value={mockupAgent}
+                  onChange={(e) => setMockupAgent(e.target.value)}
+                  style={{ width: '200px', fontSize: '11px' }}
+                >
+                  <option value="">Default</option>
+                  {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+            )}
             <button
               className="ds-btn-primary"
-              onClick={generateMockup}
+              onClick={() => generateMockup()}
               disabled={generatingMockup || !mockupPrompt.trim()}
               style={{ fontSize: '10px', letterSpacing: '.1em', padding: '8px 20px', whiteSpace: 'nowrap' }}
             >

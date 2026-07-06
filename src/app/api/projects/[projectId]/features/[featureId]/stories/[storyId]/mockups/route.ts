@@ -16,8 +16,8 @@ export async function POST(
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { prompt, agentId } = await req.json();
-  if (!prompt) return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
+  const { prompt, autoGenerate, agentId } = await req.json();
+  if (!prompt && !autoGenerate) return NextResponse.json({ error: 'prompt or autoGenerate is required' }, { status: 400 });
 
   // Load story
   const story = await prisma.userStory.findUnique({ where: { id: storyId }, include: { feature: true } });
@@ -89,10 +89,38 @@ ${JSON.stringify(story.acceptanceCriteria || [], null, 2)}
     ? `${agentConfig.systemInstructions}\n\nYou are generating an HTML mockup. Follow the rules below strictly.`
     : 'You are a senior UI/UX designer and frontend developer specializing in creating pixel-perfect HTML mockups.';
 
+  // Build the screen description — auto-generate from story if no prompt
+  let screenDescription = prompt;
+  if (!screenDescription || autoGenerate) {
+    // Build a rich description from story context
+    const reqsList = (story.requirements as any[]) || [];
+    const funcReqs = reqsList.filter((r: any) => r.type === 'functional').map((r: any) => r.description).join('; ');
+    const criteria = story.acceptanceCriteria as any;
+    const criteriaStr = Array.isArray(criteria) ? criteria.join('; ') : '';
+    const gherkins = (story.gherkinScenarios as any[]) || [];
+    const gherkinStr = gherkins.map((g: any) => `${g.title}: Given ${g.given}, When ${g.when}, Then ${g.then}`).join('\n');
+
+    screenDescription = `Generate the main screen for this user story.
+
+User Story: As a ${story.persona}, I want to ${story.action} so that ${story.benefit}.
+Feature: ${story.feature.title}
+
+Key functional requirements:
+${funcReqs || 'Not specified'}
+
+Acceptance criteria to satisfy:
+${criteriaStr || 'Not specified'}
+
+User scenarios to support:
+${gherkinStr || 'Not specified'}
+
+Create the PRIMARY screen that would be needed to fulfill this user story. Include all interactive elements (buttons, forms, lists, navigation) that the requirements describe. Use realistic data and labels.`;
+  }
+
   const userMessage = `Generate a COMPLETE, self-contained HTML page for the following screen mockup.
 
 # Screen Description
-${prompt}
+${screenDescription}
 
 ${storyContext}
 ${designContext}
@@ -155,8 +183,12 @@ ${uxContext}
     const existingMockups = (story.mockups as any[]) || [];
     const newMockup = {
       id: `screen-${Date.now()}`,
-      title: prompt.length > 60 ? prompt.slice(0, 57) + '...' : prompt,
-      description: prompt,
+      title: autoGenerate
+        ? `${story.feature.title} — Main Screen`
+        : (prompt && prompt.length > 60 ? prompt.slice(0, 57) + '...' : prompt || 'Generated Screen'),
+      description: autoGenerate
+        ? `Auto-generated from user story: As a ${story.persona}, I want to ${story.action}`
+        : prompt || 'Custom screen',
       html,
       status: 'draft',
       order: existingMockups.length,
