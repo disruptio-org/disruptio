@@ -81,6 +81,7 @@ export default function AgentsContent({ project }: { project: any }) {
   };
 
   const deleteAgent = async (agentId: string) => {
+    if (!confirm('Delete this agent? This action cannot be undone.')) return;
     try {
       const res = await fetch(`/api/projects/${project.id}/agents?agentId=${agentId}`, { method: 'DELETE' });
       if (res.ok) {
@@ -402,13 +403,11 @@ export default function AgentsContent({ project }: { project: any }) {
                     ))}
                   </div>
                 </div>
-                <span
-                  style={{ color: '#3A3A3A', fontSize: '16px', cursor: 'pointer', padding: '0 4px' }}
+                <button
+                  className="ds-btn-ghost ds-btn-sm"
+                  style={{ color: '#FF2A2A', borderColor: '#FF2A2A' }}
                   onClick={() => deleteAgent(agent.id)}
-                  title="Delete agent"
-                >
-                  ×
-                </span>
+                >DELETE</button>
                 <span style={{ fontSize: '11px', color: '#5A5A5A' }}>
                   {diag?.result ? (
                     <span style={{ color: statusColors[diag.result.status] }}>
