@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ pr
   }
 
   // Whitelist allowed project fields
-  const allowed = ['name', 'description', 'productType', 'businessGoal', 'targetUsers', 'currentStage', 'source', 'status'];
+  const allowed = ['name', 'description', 'productType', 'businessGoal', 'targetUsers', 'currentStage', 'coreWorkflows', 'source', 'status'];
   const data: Record<string, string> = {};
   for (const key of allowed) {
     if (body[key] !== undefined) data[key] = body[key];

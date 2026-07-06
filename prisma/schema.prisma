@@ -50,6 +50,7 @@ model Project {
   businessGoal    String?
   targetUsers     String?
   currentStage    String?
+  coreWorkflows   String?
   source          String   @default("manual")
   status          String   @default("active")
   createdAt       DateTime @default(now())
