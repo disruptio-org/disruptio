@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
     const completion = await openai.chat.completions.create({
       model,
       temperature: 0.1,
-      max_tokens: 8192,
+      max_completion_tokens: 8192,
       response_format: { type: 'json_object' },
       messages: [
         {

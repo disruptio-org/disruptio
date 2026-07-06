@@ -80,7 +80,7 @@ Return ONLY valid JSON object, no markdown, no code fences, no explanation.`;
     const completion = await client.chat.completions.create({
       model,
       temperature: 0.4,
-      max_tokens: 4096,
+      max_completion_tokens: 4096,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },

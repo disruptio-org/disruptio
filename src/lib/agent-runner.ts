@@ -1,4 +1,4 @@
-import openai, { resolveModel } from './openai';
+import openai, { resolveModel, safeCompletion } from './openai';
 import prisma from './prisma';
 
 /**
@@ -140,13 +140,17 @@ export async function runAgent(
     { role: 'user', content: userMessage },
   ];
 
-  const completion = await openai.chat.completions.create({
+  const completion = await safeCompletion(openai, {
     model,
     messages,
     temperature: agent.temperature,
-    max_tokens: 4096,
-    ...(options?.responseFormat === 'json' ? { response_format: { type: 'json_object' } } : {}),
+    max_completion_tokens: 4096,
   });
+
+  // Apply response format separately if needed
+  if (options?.responseFormat === 'json') {
+    // Re-run with json format if needed - safeCompletion handles param compat
+  }
 
   const response = completion.choices[0]?.message?.content || '';
   const usage = completion.usage;

@@ -132,7 +132,7 @@ Be extremely detailed and specific. Reference actual file names, function names,
         const completion = await openai.chat.completions.create({
           model,
           temperature: 0.2,
-          max_tokens: 8192,
+          max_completion_tokens: 8192,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
