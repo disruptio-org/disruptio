@@ -135,77 +135,122 @@ ${storyContext}`,
         body: JSON.stringify({ agentId, message: tabPrompts[tab] }),
       });
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        console.error('[AI Assist] API error:', res.status, errData);
+        const errText = await res.text().catch(() => '');
+        console.error('[AI Assist] API error:', res.status, errText.substring(0, 200));
         setAiLoading((p) => ({ ...p, [tab]: false }));
         return;
       }
       const data = await res.json();
+      console.log('[AI Assist] data keys:', Object.keys(data));
       const raw = data.response || '';
-      console.log('[AI Assist] Raw response length:', raw.length);
+      console.log('[AI Assist] raw length:', raw.length, 'first 300:', raw.substring(0, 300));
 
-      // Try to extract JSON — handle markdown code fences too
-      let jsonStr = '';
-      const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (fenced) {
-        jsonStr = fenced[1].trim();
-      } else {
-        const arrMatch = raw.match(/\[[\s\S]*\]/);
-        const objMatch = raw.match(/\{[\s\S]*\}/);
-        jsonStr = (arrMatch || objMatch)?.[0] || '';
+      if (!raw || raw.length < 5) {
+        console.error('[AI Assist] Empty response from AI');
+        setAiLoading((p) => ({ ...p, [tab]: false }));
+        return;
       }
 
-      if (jsonStr) {
-        const parsed = JSON.parse(jsonStr);
-        let patch: Record<string, any> | null = null;
+      // --- Robust JSON extraction ---
+      let parsed: any = null;
 
-        if (tab === 'story' && parsed.action) patch = { persona: parsed.persona || story.persona, action: parsed.action, benefit: parsed.benefit || story.benefit, complexity: parsed.complexity || story.complexity };
-        else if (tab === 'requirements' && Array.isArray(parsed)) patch = { requirements: parsed };
-        else if (tab === 'acceptance' && Array.isArray(parsed)) patch = { acceptanceCriteria: parsed };
-        else if (tab === 'gherkin' && Array.isArray(parsed)) patch = { gherkinScenarios: parsed };
-        else if (tab === 'techreview') {
-          patch = { techReview: {
-            notes: parsed.notes || parsed.technical_review_notes || parsed.review_notes || parsed.technicalNotes || '',
-            impactAnalysis: parsed.impactAnalysis || parsed.impact_analysis || parsed.impact || '',
-            risks: Array.isArray(parsed.risks) ? parsed.risks : [],
-            architectureNotes: parsed.architectureNotes || parsed.architecture_notes || parsed.architecture || '',
-          }};
+      // Attempt 1: Direct parse (AI returned only JSON)
+      try { parsed = JSON.parse(raw.trim()); console.log('[AI Assist] Direct parse OK'); } catch { /* not raw JSON */ }
+
+      // Attempt 2: Extract from ```json ... ``` code fence
+      if (!parsed) {
+        const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (fenced) {
+          try { parsed = JSON.parse(fenced[1].trim()); console.log('[AI Assist] Code fence parse OK'); } catch { /* bad fence */ }
         }
-        else if (tab === 'planning') {
-          patch = { planning: {
-            subtasks: Array.isArray(parsed.subtasks) ? parsed.subtasks : (Array.isArray(parsed.tasks) ? parsed.tasks : []),
-            totalEstimate: parsed.totalEstimate || parsed.total_estimate || '',
-            notes: parsed.notes || parsed.planning_notes || '',
-            impactedFiles: Array.isArray(parsed.impactedFiles) ? parsed.impactedFiles : [],
-            newFiles: Array.isArray(parsed.newFiles) ? parsed.newFiles : [],
-          }};
-        }
+      }
 
-        if (patch) {
-          console.log('[AI Assist] Saving patch:', Object.keys(patch));
-          // Save to DB
-          const patchRes = await fetch(apiUrl, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patch),
-          });
-
-          if (patchRes.ok) {
-            const updatedStory = await patchRes.json();
-            // Update local state directly so all tabs pick up the new data
-            setStory((prev: any) => ({ ...prev, ...updatedStory }));
-            setStoryVersion((v) => v + 1);
-            setAiDone((p) => ({ ...p, [tab]: true }));
-            console.log('[AI Assist] Saved successfully');
-          } else {
-            const errData = await patchRes.json().catch(() => ({}));
-            console.error('[AI Assist] Save failed:', patchRes.status, errData);
+      // Attempt 3: Brace-matching for { ... }
+      if (!parsed) {
+        const objIdx = raw.indexOf('{');
+        if (objIdx >= 0) {
+          let d = 0, end = -1;
+          for (let i = objIdx; i < raw.length; i++) {
+            if (raw[i] === '{') d++; else if (raw[i] === '}') { d--; if (d === 0) { end = i; break; } }
           }
+          if (end > objIdx) {
+            try { parsed = JSON.parse(raw.substring(objIdx, end + 1)); console.log('[AI Assist] Brace-match parse OK'); } catch { /* bad obj */ }
+          }
+        }
+      }
+
+      // Attempt 4: Bracket-matching for [ ... ]
+      if (!parsed) {
+        const arrIdx = raw.indexOf('[');
+        if (arrIdx >= 0) {
+          let d = 0, end = -1;
+          for (let i = arrIdx; i < raw.length; i++) {
+            if (raw[i] === '[') d++; else if (raw[i] === ']') { d--; if (d === 0) { end = i; break; } }
+          }
+          if (end > arrIdx) {
+            try { parsed = JSON.parse(raw.substring(arrIdx, end + 1)); console.log('[AI Assist] Array-match parse OK'); } catch { /* bad arr */ }
+          }
+        }
+      }
+
+      if (!parsed) {
+        console.error('[AI Assist] Could not extract JSON. Raw:', raw.substring(0, 500));
+        setAiLoading((p) => ({ ...p, [tab]: false }));
+        return;
+      }
+
+      console.log('[AI Assist] Parsed type:', Array.isArray(parsed) ? 'array' : 'object', 'keys:', Array.isArray(parsed) ? `[${parsed.length} items]` : Object.keys(parsed));
+
+      // --- Build the patch based on the tab ---
+      let patch: Record<string, any> | null = null;
+
+      if (tab === 'story' && parsed.action) {
+        patch = { persona: parsed.persona || story.persona, action: parsed.action, benefit: parsed.benefit || story.benefit, complexity: parsed.complexity || story.complexity };
+      } else if (tab === 'requirements' && Array.isArray(parsed)) {
+        patch = { requirements: parsed };
+      } else if (tab === 'acceptance' && Array.isArray(parsed)) {
+        patch = { acceptanceCriteria: parsed };
+      } else if (tab === 'gherkin' && Array.isArray(parsed)) {
+        patch = { gherkinScenarios: parsed };
+      } else if (tab === 'techreview') {
+        patch = { techReview: {
+          notes: parsed.notes || parsed.technical_review_notes || parsed.review_notes || parsed.technicalNotes || '',
+          impactAnalysis: parsed.impactAnalysis || parsed.impact_analysis || parsed.impact || '',
+          risks: Array.isArray(parsed.risks) ? parsed.risks : [],
+          architectureNotes: parsed.architectureNotes || parsed.architecture_notes || parsed.architecture || '',
+        }};
+        console.log('[AI Assist] techReview patch notes length:', patch.techReview.notes.length);
+      } else if (tab === 'planning') {
+        patch = { planning: {
+          subtasks: Array.isArray(parsed.subtasks) ? parsed.subtasks : (Array.isArray(parsed.tasks) ? parsed.tasks : []),
+          totalEstimate: parsed.totalEstimate || parsed.total_estimate || '',
+          notes: parsed.notes || parsed.planning_notes || '',
+          impactedFiles: Array.isArray(parsed.impactedFiles) ? parsed.impactedFiles : [],
+          newFiles: Array.isArray(parsed.newFiles) ? parsed.newFiles : [],
+        }};
+      }
+
+      if (patch) {
+        console.log('[AI Assist] Saving patch for:', tab);
+        const patchRes = await fetch(apiUrl, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(patch),
+        });
+
+        if (patchRes.ok) {
+          const updatedStory = await patchRes.json();
+          console.log('[AI Assist] PATCH OK, techReview present:', !!updatedStory.techReview, 'planning present:', !!updatedStory.planning);
+          setStory((prev: any) => ({ ...prev, ...updatedStory }));
+          setStoryVersion((v) => v + 1);
+          setAiDone((p) => ({ ...p, [tab]: true }));
+          console.log('[AI Assist] ✅ State updated, tab will remount');
         } else {
-          console.warn('[AI Assist] No patch built from parsed JSON. Keys:', Object.keys(parsed));
+          const errBody = await patchRes.text().catch(() => '');
+          console.error('[AI Assist] PATCH failed:', patchRes.status, errBody.substring(0, 200));
         }
       } else {
-        console.warn('[AI Assist] No JSON found in response. Raw:', raw.substring(0, 200));
+        console.warn('[AI Assist] No patch built. Tab:', tab, 'Parsed keys:', Object.keys(parsed));
       }
     } catch (err) {
       console.error('[AI Assist] Error:', err);
