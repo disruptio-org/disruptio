@@ -1,11 +1,25 @@
 import OpenAI from 'openai';
 
-if (!process.env.OPENAI_API_KEY) {
-  console.warn('[Disruptio] OPENAI_API_KEY not set — AI features will be unavailable');
+// Lazy-initialized OpenAI client — only created on first use, not at module load.
+// This prevents build-time crashes when OPENAI_API_KEY isn't set.
+let _openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('[Disruptio] OPENAI_API_KEY not set — AI features will be unavailable');
+    }
+    _openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || 'sk-placeholder-for-build',
+    });
+  }
+  return _openai;
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+const openai = new Proxy({} as OpenAI, {
+  get(_target, prop) {
+    return (getOpenAI() as any)[prop];
+  },
 });
 
 export default openai;
