@@ -23,15 +23,15 @@ interface Feature {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: '#6A6A6A', 'in-progress': '#F39C12', ready: '#2ECC71', done: '#5A5A5A',
+  draft: 'var(--text-dim)', 'in-progress': 'var(--warning)', ready: 'var(--success)', done: 'var(--text-faint)',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  low: '#2ECC71', medium: '#F39C12', high: '#FF2A2A', critical: '#FF2A2A',
+  low: 'var(--success)', medium: 'var(--warning)', high: 'var(--accent)', critical: 'var(--accent)',
 };
 
 const COMPLEXITY_COLORS: Record<string, string> = {
-  low: '#2ECC71', medium: '#F39C12', high: '#FF2A2A',
+  low: 'var(--success)', medium: 'var(--warning)', high: 'var(--accent)',
 };
 
 export default function FeaturesContent({ project }: { project: any }) {
@@ -196,7 +196,7 @@ export default function FeaturesContent({ project }: { project: any }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div className="ds-section-title">FEATURES</div>
-          <div style={{ marginTop: '6px', fontSize: '12px', color: '#6A6A6A' }}>
+          <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-dim)' }}>
             {features.length} features · {totalStories} user stories · {readyFeatures} ready
           </div>
         </div>
@@ -229,10 +229,10 @@ export default function FeaturesContent({ project }: { project: any }) {
       {/* New Feature Form */}
       {showNewFeature && (
         <div className="ds-card" style={{ animation: 'dsFadeIn .2s ease-out', borderColor: '#FF2A2A33' }}>
-          <div className="ds-label" style={{ marginBottom: '14px', color: '#FF2A2A' }}>NEW FEATURE</div>
+          <div className="ds-label" style={{ marginBottom: '14px', color: 'var(--accent)' }}>NEW FEATURE</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div>
-              <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>TITLE</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.12em', marginBottom: '4px' }}>TITLE</div>
               <input
                 className="ds-input"
                 style={{ width: '100%' }}
@@ -244,7 +244,7 @@ export default function FeaturesContent({ project }: { project: any }) {
               />
             </div>
             <div>
-              <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>DESCRIPTION (OPTIONAL)</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.12em', marginBottom: '4px' }}>DESCRIPTION (OPTIONAL)</div>
               <textarea
                 className="ds-input"
                 style={{ width: '100%', minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
@@ -254,7 +254,7 @@ export default function FeaturesContent({ project }: { project: any }) {
               />
             </div>
             <div>
-              <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>PRIORITY</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.12em', marginBottom: '4px' }}>PRIORITY</div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {['low', 'medium', 'high', 'critical'].map((p) => (
                   <button
@@ -263,8 +263,8 @@ export default function FeaturesContent({ project }: { project: any }) {
                     style={{
                       padding: '4px 12px', fontSize: '10px', letterSpacing: '.1em', cursor: 'pointer',
                       background: newFeaturePriority === p ? `${PRIORITY_COLORS[p]}18` : 'transparent',
-                      border: `1px solid ${newFeaturePriority === p ? PRIORITY_COLORS[p] : '#2A2A2A'}`,
-                      color: newFeaturePriority === p ? PRIORITY_COLORS[p] : '#5A5A5A',
+                      border: `1px solid ${newFeaturePriority === p ? PRIORITY_COLORS[p] : 'var(--border-input)'}`,
+                      color: newFeaturePriority === p ? PRIORITY_COLORS[p] : 'var(--text-faint)',
                     }}
                   >
                     {p.toUpperCase()}
@@ -284,9 +284,9 @@ export default function FeaturesContent({ project }: { project: any }) {
 
       {/* Feature List */}
       {features.length === 0 && !showNewFeature ? (
-        <div style={{ border: '1px solid #2A2A2A', padding: '60px', textAlign: 'center' }}>
+        <div style={{ border: '1px solid var(--border-input)', padding: '60px', textAlign: 'center' }}>
           <div style={{ fontSize: '16px', fontWeight: 700 }}>No features defined.</div>
-          <div style={{ marginTop: '8px', color: '#6A6A6A', fontSize: '12px' }}>
+          <div style={{ marginTop: '8px', color: 'var(--text-dim)', fontSize: '12px' }}>
             Features group related user stories. Create your first feature to start planning.
           </div>
           <button
@@ -312,23 +312,23 @@ export default function FeaturesContent({ project }: { project: any }) {
                     cursor: 'pointer', transition: 'border-color .15s',
                     borderColor: isExpanded ? '#FF2A2A33' : undefined,
                     marginBottom: isExpanded ? '0' : undefined,
-                    borderBottom: isExpanded ? '1px solid #1A1A1A' : undefined,
+                    borderBottom: isExpanded ? '1px solid var(--bg-hover)' : undefined,
                   }}
                   onClick={() => toggleExpand(feature.id)}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     {/* Expand indicator */}
-                    <span style={{ color: '#5A5A5A', fontSize: '10px', width: '10px', fontFamily: '"JetBrains Mono", monospace' }}>
+                    <span style={{ color: 'var(--text-faint)', fontSize: '10px', width: '10px', fontFamily: '"JetBrains Mono", monospace' }}>
                       {isExpanded ? '▼' : '▶'}
                     </span>
 
                     {/* Title */}
-                    <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '14px', flex: 1 }}>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '14px', flex: 1 }}>
                       {feature.title}
                     </span>
 
                     {/* Story count */}
-                    <span style={{ fontSize: '11px', color: '#5A5A5A', fontFamily: '"JetBrains Mono", monospace' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-faint)', fontFamily: '"JetBrains Mono", monospace' }}>
                       {storyCount} {storyCount === 1 ? 'story' : 'stories'}
                     </span>
 
@@ -371,7 +371,7 @@ export default function FeaturesContent({ project }: { project: any }) {
 
                     {/* Delete */}
                     <span
-                      style={{ color: '#3A3A3A', fontSize: '14px', cursor: 'pointer', padding: '0 4px' }}
+                      style={{ color: 'var(--border-strong)', fontSize: '14px', cursor: 'pointer', padding: '0 4px' }}
                       onClick={(e) => { e.stopPropagation(); deleteFeature(feature.id); }}
                       title="Delete feature"
                     >
@@ -380,7 +380,7 @@ export default function FeaturesContent({ project }: { project: any }) {
                   </div>
 
                   {feature.description && (
-                    <div style={{ marginTop: '8px', fontSize: '11.5px', color: '#6A6A6A', paddingLeft: '22px' }}>
+                    <div style={{ marginTop: '8px', fontSize: '11.5px', color: 'var(--text-dim)', paddingLeft: '22px' }}>
                       {feature.description}
                     </div>
                   )}
@@ -389,13 +389,13 @@ export default function FeaturesContent({ project }: { project: any }) {
                 {/* Expanded: User Stories */}
                 {isExpanded && (
                   <div style={{
-                    background: '#080808', border: '1px solid #1A1A1A', borderTop: 'none',
+                    background: 'var(--bg-surface)', border: '1px solid var(--bg-hover)', borderTop: 'none',
                     padding: '16px 16px 16px 34px',
                     display: 'flex', flexDirection: 'column', gap: '8px',
                     animation: 'dsFadeIn .15s ease-out',
                   }}>
                     {feature.userStories.length === 0 && !storyForms[feature.id] && (
-                      <div style={{ color: '#4A4A4A', fontSize: '12px', padding: '12px 0' }}>
+                      <div style={{ color: 'var(--text-ghost)', fontSize: '12px', padding: '12px 0' }}>
                         No user stories yet. Add your first story below.
                       </div>
                     )}
@@ -404,17 +404,17 @@ export default function FeaturesContent({ project }: { project: any }) {
                       <div
                         key={story.id}
                         style={{
-                          background: '#0D0D0D', border: '1px solid #1A1A1A', padding: '12px 14px',
+                          background: 'var(--bg-elevated)', border: '1px solid var(--bg-hover)', padding: '12px 14px',
                           cursor: 'pointer', transition: 'border-color .15s ease',
                         }}
                         onClick={() => router.push(`/projects/${project.id}/features/${feature.id}/stories/${story.id}`)}
                         onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#FF2A2A44')}
-                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#1A1A1A')}
+                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--bg-hover)')}
                       >
-                        <div style={{ fontSize: '12px', color: '#B3B3B3', lineHeight: 1.6 }}>
-                          As a <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{story.persona}</span>,
-                          I want to <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{story.action}</span> so
-                          that <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{story.benefit}</span>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                          As a <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{story.persona}</span>,
+                          I want to <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{story.action}</span> so
+                          that <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{story.benefit}</span>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
@@ -446,7 +446,7 @@ export default function FeaturesContent({ project }: { project: any }) {
 
                           {/* AC count */}
                           {Array.isArray(story.acceptanceCriteria) && story.acceptanceCriteria.length > 0 && (
-                            <span style={{ fontSize: '10px', color: '#4A4A4A', fontFamily: '"JetBrains Mono", monospace' }}>
+                            <span style={{ fontSize: '10px', color: 'var(--text-ghost)', fontFamily: '"JetBrains Mono", monospace' }}>
                               {story.acceptanceCriteria.length} AC
                             </span>
                           )}
@@ -455,7 +455,7 @@ export default function FeaturesContent({ project }: { project: any }) {
 
                           {/* Delete story */}
                           <span
-                            style={{ color: '#3A3A3A', fontSize: '12px', cursor: 'pointer' }}
+                            style={{ color: 'var(--border-strong)', fontSize: '12px', cursor: 'pointer' }}
                             onClick={() => deleteStory(feature.id, story.id)}
                           >
                             ×
@@ -467,13 +467,13 @@ export default function FeaturesContent({ project }: { project: any }) {
                     {/* New Story Form */}
                     {storyForms[feature.id] ? (
                       <div style={{
-                        background: '#0D0D0D', border: '1px solid #FF2A2A22', padding: '14px',
+                        background: 'var(--bg-elevated)', border: '1px solid #FF2A2A22', padding: '14px',
                         animation: 'dsFadeIn .15s ease-out',
                       }}>
-                        <div className="ds-label" style={{ marginBottom: '10px', color: '#FF2A2A', fontSize: '10px' }}>NEW USER STORY</div>
+                        <div className="ds-label" style={{ marginBottom: '10px', color: 'var(--accent)', fontSize: '10px' }}>NEW USER STORY</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            <span style={{ fontSize: '11px', color: '#6A6A6A', whiteSpace: 'nowrap' }}>As a</span>
+                            <span style={{ fontSize: '11px', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>As a</span>
                             {personaNames.length > 0 ? (
                               <select
                                 className="ds-input"
@@ -496,7 +496,7 @@ export default function FeaturesContent({ project }: { project: any }) {
                             )}
                           </div>
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            <span style={{ fontSize: '11px', color: '#6A6A6A', whiteSpace: 'nowrap' }}>I want to</span>
+                            <span style={{ fontSize: '11px', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>I want to</span>
                             <input
                               className="ds-input"
                               style={{ flex: 1 }}
@@ -506,7 +506,7 @@ export default function FeaturesContent({ project }: { project: any }) {
                             />
                           </div>
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            <span style={{ fontSize: '11px', color: '#6A6A6A', whiteSpace: 'nowrap' }}>So that</span>
+                            <span style={{ fontSize: '11px', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>So that</span>
                             <input
                               className="ds-input"
                               style={{ flex: 1 }}
@@ -517,7 +517,7 @@ export default function FeaturesContent({ project }: { project: any }) {
                             />
                           </div>
                           <div>
-                            <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '4px' }}>COMPLEXITY</div>
+                            <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.1em', marginBottom: '4px' }}>COMPLEXITY</div>
                             <div style={{ display: 'flex', gap: '6px' }}>
                               {['low', 'medium', 'high'].map((c) => (
                                 <button
@@ -526,8 +526,8 @@ export default function FeaturesContent({ project }: { project: any }) {
                                   style={{
                                     padding: '2px 10px', fontSize: '9px', letterSpacing: '.1em', cursor: 'pointer',
                                     background: storyInputs[feature.id]?.complexity === c ? `${COMPLEXITY_COLORS[c]}18` : 'transparent',
-                                    border: `1px solid ${storyInputs[feature.id]?.complexity === c ? COMPLEXITY_COLORS[c] : '#2A2A2A'}`,
-                                    color: storyInputs[feature.id]?.complexity === c ? COMPLEXITY_COLORS[c] : '#5A5A5A',
+                                    border: `1px solid ${storyInputs[feature.id]?.complexity === c ? COMPLEXITY_COLORS[c] : 'var(--border-input)'}`,
+                                    color: storyInputs[feature.id]?.complexity === c ? COMPLEXITY_COLORS[c] : 'var(--text-faint)',
                                   }}
                                 >
                                   {c.toUpperCase()}

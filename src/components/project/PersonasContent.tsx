@@ -152,7 +152,7 @@ export default function PersonasContent({ project }: { project: any }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <div className="ds-section-title">PERSONAS</div>
-          <div style={{ marginTop: '8px', fontSize: '12px', color: '#6A6A6A' }}>
+          <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-dim)' }}>
             {project.personas.length} persona{project.personas.length !== 1 ? 's' : ''} defined
           </div>
         </div>
@@ -170,7 +170,7 @@ export default function PersonasContent({ project }: { project: any }) {
       {/* AI Assist Bar — always visible */}
       <div className="ds-card" style={{ borderColor: '#FF2A2A33', padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ fontSize: '10px', letterSpacing: '.14em', color: '#FF2A2A', fontWeight: 700, marginRight: '4px' }}>
+          <div style={{ fontSize: '10px', letterSpacing: '.14em', color: 'var(--accent)', fontWeight: 700, marginRight: '4px' }}>
             AI ASSIST
           </div>
           {agents.length > 0 && (
@@ -178,7 +178,7 @@ export default function PersonasContent({ project }: { project: any }) {
               value={selectedAgent}
               onChange={(e) => setSelectedAgent(e.target.value)}
               style={{
-                background: '#0D0D0D', border: '1px solid #2A2A2A', color: '#B3B3B3',
+                background: 'var(--bg-elevated)', border: '1px solid var(--border-input)', color: 'var(--text-secondary)',
                 padding: '6px 10px', fontSize: '11px', fontFamily: '"JetBrains Mono", monospace',
                 minWidth: '200px',
               }}
@@ -197,17 +197,17 @@ export default function PersonasContent({ project }: { project: any }) {
           >
             {generating ? '[ GENERATING... ]' : '[ SUGGEST PERSONAS ]'}
           </button>
-          <div style={{ fontSize: '10px', color: '#5A5A5A', marginLeft: '4px' }}>
+          <div style={{ fontSize: '10px', color: 'var(--text-faint)', marginLeft: '4px' }}>
             Generate personas based on product context
           </div>
         </div>
         {generating && (
-          <div style={{ marginTop: '10px', fontSize: '10px', color: '#F39C12', letterSpacing: '.1em' }}>
+          <div style={{ marginTop: '10px', fontSize: '10px', color: 'var(--warning)', letterSpacing: '.1em' }}>
             ● {aiStatus}
           </div>
         )}
         {!generating && aiStatus && (
-          <div style={{ marginTop: '10px', fontSize: '10px', letterSpacing: '.1em', color: aiStatus.startsWith('✓') ? '#2ECC71' : '#FF2A2A' }}>
+          <div style={{ marginTop: '10px', fontSize: '10px', letterSpacing: '.1em', color: aiStatus.startsWith('✓') ? 'var(--success)' : 'var(--accent)' }}>
             {aiStatus}
           </div>
         )}
@@ -215,16 +215,16 @@ export default function PersonasContent({ project }: { project: any }) {
 
       {/* Import status */}
       {importing && (
-        <div style={{ padding: '12px 16px', background: '#0D0D0D', border: '1px solid #2A2A2A', fontSize: '11px', color: '#F39C12', letterSpacing: '.1em' }}>
+        <div style={{ padding: '12px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-input)', fontSize: '11px', color: 'var(--warning)', letterSpacing: '.1em' }}>
           ● Parsing document and extracting personas with AI... This may take a moment.
         </div>
       )}
       {importResult && (
         <div style={{
-          padding: '12px 16px', background: '#0D0D0D',
-          border: `1px solid ${importResult.error ? '#FF2A2A' : '#2ECC71'}`,
+          padding: '12px 16px', background: 'var(--bg-elevated)',
+          border: `1px solid ${importResult.error ? 'var(--accent)' : 'var(--success)'}`,
           fontSize: '11px', letterSpacing: '.1em',
-          color: importResult.error ? '#FF2A2A' : '#2ECC71',
+          color: importResult.error ? 'var(--accent)' : 'var(--success)',
         }}>
           {importResult.error ? `✕ ${importResult.error}` : `✓ Successfully imported ${importResult.count} persona${importResult.count !== 1 ? 's' : ''} from document`}
         </div>
@@ -232,9 +232,9 @@ export default function PersonasContent({ project }: { project: any }) {
 
       {/* New / Edit form */}
       {showForm && (
-        <div style={{ border: '1px solid #FF2A2A', background: '#0D0D0D', padding: '24px' }}>
+        <div style={{ border: '1px solid var(--accent)', background: 'var(--bg-elevated)', padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div style={{ fontSize: '12px', letterSpacing: '.14em', color: '#FF2A2A', fontWeight: 700 }}>
+            <div style={{ fontSize: '12px', letterSpacing: '.14em', color: 'var(--accent)', fontWeight: 700 }}>
               {editId ? 'EDIT PERSONA' : 'NEW PERSONA'}
             </div>
             {/* AI Enhance button inside the form */}
@@ -242,13 +242,13 @@ export default function PersonasContent({ project }: { project: any }) {
               className="ds-btn-ghost ds-btn-sm"
               onClick={handleAiEnhance}
               disabled={enhancing}
-              style={{ color: '#FF2A2A', borderColor: '#FF2A2A33', fontSize: '10px', letterSpacing: '.1em' }}
+              style={{ color: 'var(--accent)', borderColor: '#FF2A2A33', fontSize: '10px', letterSpacing: '.1em' }}
             >
               {enhancing ? '[ ENHANCING... ]' : '✦ AI ENHANCE'}
             </button>
           </div>
           {enhancing && (
-            <div style={{ marginBottom: '14px', padding: '8px 12px', background: '#111', border: '1px solid #FF2A2A22', fontSize: '10px', color: '#F39C12', letterSpacing: '.1em' }}>
+            <div style={{ marginBottom: '14px', padding: '8px 12px', background: 'var(--bg-elevated)', border: '1px solid #FF2A2A22', fontSize: '10px', color: 'var(--warning)', letterSpacing: '.1em' }}>
               ● Agent is analyzing and filling in persona details...
             </div>
           )}
@@ -275,9 +275,9 @@ export default function PersonasContent({ project }: { project: any }) {
 
       {/* Empty state */}
       {project.personas.length === 0 && !showForm && (
-        <div style={{ border: '1px solid #2A2A2A', padding: '60px', textAlign: 'center' }}>
+        <div style={{ border: '1px solid var(--border-input)', padding: '60px', textAlign: 'center' }}>
           <div style={{ fontSize: '16px', fontWeight: 700 }}>No personas defined yet.</div>
-          <div style={{ marginTop: '8px', color: '#6A6A6A', fontSize: '12px', maxWidth: '400px', margin: '8px auto 0' }}>
+          <div style={{ marginTop: '8px', color: 'var(--text-dim)', fontSize: '12px', maxWidth: '400px', margin: '8px auto 0' }}>
             Personas shape requirements, UX decisions, and acceptance criteria. Use the AI Assist above to generate personas, or add them manually.
           </div>
         </div>
@@ -288,25 +288,25 @@ export default function PersonasContent({ project }: { project: any }) {
         <div key={p.id} className="ds-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '14px' }}>{p.name}</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '14px' }}>{p.name}</span>
               {p.role && <span className="ds-badge">{p.role}</span>}
               {p.technicalLevel && <span className="ds-badge">{p.technicalLevel}</span>}
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button className="ds-btn-ghost ds-btn-sm" onClick={() => openEdit(p)}>EDIT</button>
-              <button className="ds-btn-ghost ds-btn-sm" style={{ color: '#FF2A2A', borderColor: '#FF2A2A' }} onClick={() => handleDelete(p.id)}>DELETE</button>
+              <button className="ds-btn-ghost ds-btn-sm" style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={() => handleDelete(p.id)}>DELETE</button>
             </div>
           </div>
-          {p.description && <div style={{ marginTop: '12px', color: '#B3B3B3', fontSize: '12.5px', lineHeight: 1.6 }}>{p.description}</div>}
+          {p.description && <div style={{ marginTop: '12px', color: 'var(--text-secondary)', fontSize: '12.5px', lineHeight: 1.6 }}>{p.description}</div>}
           <div style={{ marginTop: '12px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-            {p.goals && <div><span className="ds-label">GOALS</span><div style={{ marginTop: '4px', color: '#8A8A8A', fontSize: '12px' }}>{p.goals}</div></div>}
-            {p.painPoints && <div><span className="ds-label">PAIN POINTS</span><div style={{ marginTop: '4px', color: '#8A8A8A', fontSize: '12px' }}>{p.painPoints}</div></div>}
+            {p.goals && <div><span className="ds-label">GOALS</span><div style={{ marginTop: '4px', color: 'var(--text-muted)', fontSize: '12px' }}>{p.goals}</div></div>}
+            {p.painPoints && <div><span className="ds-label">PAIN POINTS</span><div style={{ marginTop: '4px', color: 'var(--text-muted)', fontSize: '12px' }}>{p.painPoints}</div></div>}
           </div>
           {(p.workflows || p.needs || p.risks) && (
             <div style={{ marginTop: '12px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-              {p.workflows && <div><span className="ds-label">WORKFLOWS</span><div style={{ marginTop: '4px', color: '#8A8A8A', fontSize: '12px' }}>{p.workflows}</div></div>}
-              {p.needs && <div><span className="ds-label">NEEDS</span><div style={{ marginTop: '4px', color: '#8A8A8A', fontSize: '12px' }}>{p.needs}</div></div>}
-              {p.risks && <div><span className="ds-label">RISKS</span><div style={{ marginTop: '4px', color: '#8A8A8A', fontSize: '12px' }}>{p.risks}</div></div>}
+              {p.workflows && <div><span className="ds-label">WORKFLOWS</span><div style={{ marginTop: '4px', color: 'var(--text-muted)', fontSize: '12px' }}>{p.workflows}</div></div>}
+              {p.needs && <div><span className="ds-label">NEEDS</span><div style={{ marginTop: '4px', color: 'var(--text-muted)', fontSize: '12px' }}>{p.needs}</div></div>}
+              {p.risks && <div><span className="ds-label">RISKS</span><div style={{ marginTop: '4px', color: 'var(--text-muted)', fontSize: '12px' }}>{p.risks}</div></div>}
             </div>
           )}
         </div>

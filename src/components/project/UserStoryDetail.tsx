@@ -25,8 +25,8 @@ const TABS = [
 
 type TabKey = typeof TABS[number]['key'];
 
-const STATUS_COLORS: Record<string, string> = { draft: '#6A6A6A', 'in-progress': '#F39C12', ready: '#2ECC71', done: '#5A5A5A' };
-const COMPLEXITY_COLORS: Record<string, string> = { low: '#2ECC71', medium: '#F39C12', high: '#FF2A2A' };
+const STATUS_COLORS: Record<string, string> = { draft: 'var(--text-dim)', 'in-progress': 'var(--warning)', ready: 'var(--success)', done: 'var(--text-faint)' };
+const COMPLEXITY_COLORS: Record<string, string> = { low: 'var(--success)', medium: 'var(--warning)', high: 'var(--accent)' };
 
 export default function UserStoryDetail({ story: initialStory, project }: { story: any; project: any }) {
   const router = useRouter();
@@ -259,9 +259,9 @@ ${storyContext}`,
   };
 
   const AiAssistPanel = ({ tab }: { tab: TabKey }) => (
-    <div style={{ marginTop: '16px', borderTop: '1px solid #1F1F1F', paddingTop: '16px' }}>
+    <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-default)', paddingTop: '16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <span style={{ fontSize: '10px', letterSpacing: '.14em', color: '#FF2A2A', fontWeight: 700 }}>AI ASSIST</span>
+        <span style={{ fontSize: '10px', letterSpacing: '.14em', color: 'var(--accent)', fontWeight: 700 }}>AI ASSIST</span>
         <select
           className="ds-input"
           style={{ width: '220px', fontSize: '11px' }}
@@ -282,7 +282,7 @@ ${storyContext}`,
           {aiLoading[tab] ? '[ GENERATING... ]' : '[ GENERATE WITH AI ]'}
         </button>
         {aiDone[tab] && (
-          <span style={{ fontSize: '10px', color: '#2ECC71', letterSpacing: '.1em', animation: 'dsFadeIn .2s ease-out' }}>
+          <span style={{ fontSize: '10px', color: 'var(--success)', letterSpacing: '.1em', animation: 'dsFadeIn .2s ease-out' }}>
             ● FIELDS UPDATED
           </span>
         )}
@@ -302,8 +302,8 @@ ${storyContext}`,
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div className="ds-card" style={{ padding: '20px' }}>
           <div className="ds-label" style={{ marginBottom: '14px' }}>USER STORY DEFINITION</div>
-          <div style={{ fontSize: '14px', color: '#B3B3B3', lineHeight: 1.8, marginBottom: '20px', fontStyle: 'italic' }}>
-            As a <strong style={{ color: '#FF2A2A' }}>{persona}</strong>, I want to <strong style={{ color: '#FFFFFF' }}>{action}</strong> so that <strong style={{ color: '#2ECC71' }}>{benefit}</strong>
+          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: '20px', fontStyle: 'italic' }}>
+            As a <strong style={{ color: 'var(--accent)' }}>{persona}</strong>, I want to <strong style={{ color: 'var(--text-primary)' }}>{action}</strong> so that <strong style={{ color: 'var(--success)' }}>{benefit}</strong>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
@@ -396,16 +396,16 @@ ${storyContext}`,
         {reqs.length > 0 && (
           <div className="ds-card" style={{ padding: '0' }}>
             {reqs.map((r, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 90px 30px', gap: '12px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #161616' }}>
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 90px 30px', gap: '12px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
                 <span style={{ fontSize: '10px', letterSpacing: '.1em', color: r.type === 'functional' ? '#3498DB' : '#9B59B6', textTransform: 'uppercase' }}>{r.type}</span>
-                <span style={{ fontSize: '12px', color: '#B3B3B3' }}>{r.description}</span>
-                <span style={{ fontSize: '10px', letterSpacing: '.1em', color: r.priority === 'must' ? '#FF2A2A' : r.priority === 'should' ? '#F39C12' : '#6A6A6A' }}>{r.priority.toUpperCase()}</span>
-                <span style={{ color: '#3A3A3A', cursor: 'pointer', textAlign: 'center' }} onClick={() => removeReq(i)}>×</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{r.description}</span>
+                <span style={{ fontSize: '10px', letterSpacing: '.1em', color: r.priority === 'must' ? 'var(--accent)' : r.priority === 'should' ? 'var(--warning)' : 'var(--text-dim)' }}>{r.priority.toUpperCase()}</span>
+                <span style={{ color: 'var(--border-strong)', cursor: 'pointer', textAlign: 'center' }} onClick={() => removeReq(i)}>×</span>
               </div>
             ))}
           </div>
         )}
-        {reqs.length === 0 && <div style={{ textAlign: 'center', color: '#3A3A3A', padding: '40px', fontSize: '12px' }}>No requirements defined yet</div>}
+        {reqs.length === 0 && <div style={{ textAlign: 'center', color: 'var(--border-strong)', padding: '40px', fontSize: '12px' }}>No requirements defined yet</div>}
         <AiAssistPanel tab="requirements" />
       </div>
     );
@@ -442,15 +442,15 @@ ${storyContext}`,
         {criteria.length > 0 && (
           <div className="ds-card" style={{ padding: '0' }}>
             {criteria.map((c, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderBottom: '1px solid #161616' }}>
-                <span style={{ color: '#2ECC71', fontSize: '12px', flexShrink: 0 }}>✓</span>
-                <span style={{ fontSize: '12px', color: '#B3B3B3', flex: 1 }}>{c}</span>
-                <span style={{ color: '#3A3A3A', cursor: 'pointer', flexShrink: 0 }} onClick={() => removeCrit(i)}>×</span>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
+                <span style={{ color: 'var(--success)', fontSize: '12px', flexShrink: 0 }}>✓</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', flex: 1 }}>{c}</span>
+                <span style={{ color: 'var(--border-strong)', cursor: 'pointer', flexShrink: 0 }} onClick={() => removeCrit(i)}>×</span>
               </div>
             ))}
           </div>
         )}
-        {criteria.length === 0 && <div style={{ textAlign: 'center', color: '#3A3A3A', padding: '40px', fontSize: '12px' }}>No acceptance criteria defined yet</div>}
+        {criteria.length === 0 && <div style={{ textAlign: 'center', color: 'var(--border-strong)', padding: '40px', fontSize: '12px' }}>No acceptance criteria defined yet</div>}
         <AiAssistPanel tab="acceptance" />
       </div>
     );
@@ -484,7 +484,7 @@ ${storyContext}`,
         )}
         {showForm && (
           <div className="ds-card" style={{ padding: '20px', borderColor: '#FF2A2A33' }}>
-            <div className="ds-label" style={{ marginBottom: '14px', color: '#FF2A2A' }}>NEW GHERKIN SCENARIO</div>
+            <div className="ds-label" style={{ marginBottom: '14px', color: 'var(--accent)' }}>NEW GHERKIN SCENARIO</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
                 <div style={labelStyle}>SCENARIO TITLE</div>
@@ -512,17 +512,17 @@ ${storyContext}`,
         {scenarios.map((s, i) => (
           <div key={i} className="ds-card" style={{ padding: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#FFFFFF' }}>Scenario: {s.title}</span>
-              <span style={{ color: '#3A3A3A', cursor: 'pointer' }} onClick={() => removeScenario(i)}>×</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>Scenario: {s.title}</span>
+              <span style={{ color: 'var(--border-strong)', cursor: 'pointer' }} onClick={() => removeScenario(i)}>×</span>
             </div>
             <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', lineHeight: 1.8 }}>
-              <div><span style={{ color: '#9B59B6' }}>Given </span><span style={{ color: '#B3B3B3' }}>{s.given}</span></div>
-              <div><span style={{ color: '#3498DB' }}>When </span><span style={{ color: '#B3B3B3' }}>{s.when}</span></div>
-              <div><span style={{ color: '#2ECC71' }}>Then </span><span style={{ color: '#B3B3B3' }}>{s.then}</span></div>
+              <div><span style={{ color: '#9B59B6' }}>Given </span><span style={{ color: 'var(--text-secondary)' }}>{s.given}</span></div>
+              <div><span style={{ color: '#3498DB' }}>When </span><span style={{ color: 'var(--text-secondary)' }}>{s.when}</span></div>
+              <div><span style={{ color: 'var(--success)' }}>Then </span><span style={{ color: 'var(--text-secondary)' }}>{s.then}</span></div>
             </div>
           </div>
         ))}
-        {scenarios.length === 0 && !showForm && <div style={{ textAlign: 'center', color: '#3A3A3A', padding: '40px', fontSize: '12px' }}>No Gherkin scenarios defined yet</div>}
+        {scenarios.length === 0 && !showForm && <div style={{ textAlign: 'center', color: 'var(--border-strong)', padding: '40px', fontSize: '12px' }}>No Gherkin scenarios defined yet</div>}
         <AiAssistPanel tab="gherkin" />
       </div>
     );
@@ -567,16 +567,16 @@ ${storyContext}`,
           <textarea className="ds-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', fontFamily: '"JetBrains Mono", monospace', fontSize: '11px' }} value={impact} onChange={(e) => setImpact(e.target.value)} placeholder="Which layers, components, APIs, and models are affected..." />
         </div>
         <div className="ds-card" style={{ padding: '20px' }}>
-          <div className="ds-label" style={{ marginBottom: '14px', color: '#FF2A2A' }}>RISKS</div>
+          <div className="ds-label" style={{ marginBottom: '14px', color: 'var(--accent)' }}>RISKS</div>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
             <input className="ds-input" style={{ flex: 1 }} value={newRisk} onChange={(e) => setNewRisk(e.target.value)} placeholder="Potential risk..." onKeyDown={(e) => e.key === 'Enter' && addRisk()} />
             <button className="ds-btn-ghost ds-btn-sm" onClick={addRisk}>[ + ]</button>
           </div>
           {risks.map((r, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', fontSize: '12px' }}>
-              <span style={{ color: '#FF2A2A' }}>⚠</span>
-              <span style={{ color: '#FF9A9A', flex: 1 }}>{r}</span>
-              <span style={{ color: '#3A3A3A', cursor: 'pointer' }} onClick={() => setRisks(risks.filter((_, idx) => idx !== i))}>×</span>
+              <span style={{ color: 'var(--accent)' }}>⚠</span>
+              <span style={{ color: 'var(--accent)', flex: 1 }}>{r}</span>
+              <span style={{ color: 'var(--border-strong)', cursor: 'pointer' }} onClick={() => setRisks(risks.filter((_, idx) => idx !== i))}>×</span>
             </div>
           ))}
         </div>
@@ -720,7 +720,7 @@ ${storyContext}`,
     };
 
     const currentMockup = mockups[activeMockup];
-    const MOCKUP_STATUS_COLORS: Record<string, string> = { draft: '#6A6A6A', approved: '#2ECC71', rejected: '#FF2A2A' };
+    const MOCKUP_STATUS_COLORS: Record<string, string> = { draft: 'var(--text-dim)', approved: 'var(--success)', rejected: 'var(--accent)' };
     const viewportWidths = { desktop: '100%', tablet: '768px', mobile: '375px' };
 
     return (
@@ -730,7 +730,7 @@ ${storyContext}`,
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div className="ds-label">GENERATE MOCKUP</div>
             {mockups.length === 0 && (
-              <span style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.08em' }}>
+              <span style={{ fontSize: '9px', color: 'var(--text-faint)', letterSpacing: '.08em' }}>
                 Uses user story, requirements, acceptance criteria, and gherkin scenarios as context
               </span>
             )}
@@ -739,15 +739,15 @@ ${storyContext}`,
           {/* Auto-generate from story — shown when no mockups exist */}
           {mockups.length === 0 && (
             <div style={{
-              padding: '20px', background: '#0A0A0A', border: '1px solid #1F1F1F',
+              padding: '20px', background: 'var(--bg-primary)', border: '1px solid var(--border-default)',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginBottom: '16px',
             }}>
-              <div style={{ fontSize: '11px', color: '#B3B3B3', textAlign: 'center', lineHeight: 1.6 }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.6 }}>
                 Generate the initial mockup based on the user story context already defined in this pipeline.
               </div>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>AI AGENT</div>
+                  <div style={{ fontSize: '9px', color: 'var(--text-faint)', letterSpacing: '.12em', marginBottom: '4px' }}>AI AGENT</div>
                   <select
                     className="ds-input"
                     value={mockupAgent}
@@ -773,7 +773,7 @@ ${storyContext}`,
           {/* Custom prompt — always available for additional screens */}
           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-faint)', letterSpacing: '.12em', marginBottom: '4px' }}>
                 {mockups.length > 0 ? 'ADD ANOTHER SCREEN' : 'OR DESCRIBE A SPECIFIC SCREEN'}
               </div>
               <textarea
@@ -789,7 +789,7 @@ ${storyContext}`,
             </div>
             {mockups.length > 0 && (
               <div>
-                <div style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' }}>AI AGENT</div>
+                <div style={{ fontSize: '9px', color: 'var(--text-faint)', letterSpacing: '.12em', marginBottom: '4px' }}>AI AGENT</div>
                 <select
                   className="ds-input"
                   value={mockupAgent}
@@ -811,12 +811,12 @@ ${storyContext}`,
             </button>
           </div>
           {mockupError && (
-            <div style={{ marginTop: '8px', fontSize: '10px', color: '#FF2A2A' }}>{mockupError}</div>
+            <div style={{ marginTop: '8px', fontSize: '10px', color: 'var(--accent)' }}>{mockupError}</div>
           )}
           {generatingMockup && (
             <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
-              <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>{generatingProgress || 'GENERATING MOCKUP...'}</span>
+              <div style={{ width: '14px', height: '14px', border: '2px solid var(--accent)33', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
+              <span style={{ fontSize: '10px', color: 'var(--accent)', letterSpacing: '.1em' }}>{generatingProgress || 'GENERATING MOCKUP...'}</span>
             </div>
           )}
         </div>
@@ -824,23 +824,23 @@ ${storyContext}`,
         {/* Screen Tabs */}
         {mockups.length > 0 && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', borderBottom: '1px solid #1F1F1F' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', borderBottom: '1px solid var(--border-default)' }}>
               {mockups.map((m: any, i: number) => (
                 <button
                   key={m.id}
                   onClick={() => { setActiveMockup(i); setEditingHtml(false); }}
                   style={{
                     padding: '10px 16px', fontSize: '10px', letterSpacing: '.08em',
-                    background: activeMockup === i ? '#141414' : 'transparent',
-                    border: 'none', borderBottom: activeMockup === i ? '2px solid #FF2A2A' : '2px solid transparent',
-                    color: activeMockup === i ? '#FFFFFF' : '#5A5A5A',
+                    background: activeMockup === i ? 'var(--bg-hover)' : 'transparent',
+                    border: 'none', borderBottom: activeMockup === i ? '2px solid var(--accent)' : '2px solid transparent',
+                    color: activeMockup === i ? 'var(--text-primary)' : 'var(--text-faint)',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
                     transition: 'all 0.15s ease',
                   }}
                 >
                   <span style={{
                     display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
-                    background: MOCKUP_STATUS_COLORS[m.status] || '#6A6A6A',
+                    background: MOCKUP_STATUS_COLORS[m.status] || 'var(--text-dim)',
                   }} />
                   SCREEN {i + 1}
                 </button>
@@ -852,7 +852,7 @@ ${storyContext}`,
               <>
                 {/* Controls bar */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}>
-                  <span style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.08em', flex: 1 }}>
+                  <span style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.08em', flex: 1 }}>
                     {currentMockup.description}
                   </span>
                   <span style={{
@@ -871,9 +871,9 @@ ${storyContext}`,
                         onClick={() => setViewportSize(vp)}
                         style={{
                           fontSize: '9px', padding: '3px 8px', letterSpacing: '.05em',
-                          background: viewportSize === vp ? '#1A1A1A' : 'transparent',
-                          border: `1px solid ${viewportSize === vp ? '#FF2A2A' : '#2A2A2A'}`,
-                          color: viewportSize === vp ? '#FF2A2A' : '#5A5A5A',
+                          background: viewportSize === vp ? 'var(--bg-hover)' : 'transparent',
+                          border: `1px solid ${viewportSize === vp ? 'var(--accent)' : 'var(--border-input)'}`,
+                          color: viewportSize === vp ? 'var(--accent)' : 'var(--text-faint)',
                           cursor: 'pointer',
                         }}
                       >
@@ -886,7 +886,7 @@ ${storyContext}`,
                 {/* Iframe Preview */}
                 <div className="ds-card" style={{
                   padding: 0, overflow: 'hidden',
-                  display: 'flex', justifyContent: 'center', background: '#000',
+                  display: 'flex', justifyContent: 'center', background: 'var(--bg-surface)',
                 }}>
                   <iframe
                     srcDoc={currentMockup.html}
@@ -907,8 +907,8 @@ ${storyContext}`,
                     onClick={() => updateMockupStatus(currentMockup.id, 'approved')}
                     style={{
                       fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
-                      background: currentMockup.status === 'approved' ? '#2ECC71' : 'transparent',
-                      border: '1px solid #2ECC71', color: currentMockup.status === 'approved' ? '#000' : '#2ECC71',
+                      background: currentMockup.status === 'approved' ? 'var(--success)' : 'transparent',
+                      border: '1px solid #2ECC71', color: currentMockup.status === 'approved' ? 'var(--bg-surface)' : 'var(--success)',
                     }}
                   >
                     APPROVE
@@ -917,8 +917,8 @@ ${storyContext}`,
                     onClick={() => updateMockupStatus(currentMockup.id, 'rejected')}
                     style={{
                       fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
-                      background: currentMockup.status === 'rejected' ? '#FF2A2A' : 'transparent',
-                      border: '1px solid #FF2A2A', color: currentMockup.status === 'rejected' ? '#FFF' : '#FF2A2A',
+                      background: currentMockup.status === 'rejected' ? 'var(--accent)' : 'transparent',
+                      border: '1px solid #FF2A2A', color: currentMockup.status === 'rejected' ? 'var(--text-primary)' : 'var(--accent)',
                     }}
                   >
                     REJECT
@@ -927,7 +927,7 @@ ${storyContext}`,
                     onClick={() => updateMockupStatus(currentMockup.id, 'draft')}
                     style={{
                       fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
-                      background: 'transparent', border: '1px solid #3A3A3A', color: '#5A5A5A',
+                      background: 'transparent', border: '1px solid var(--border-strong)', color: 'var(--text-faint)',
                     }}
                   >
                     RESET TO DRAFT
@@ -942,7 +942,7 @@ ${storyContext}`,
                     }}
                     style={{
                       fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
-                      background: 'transparent', border: '1px solid #2A2A2A', color: '#B3B3B3',
+                      background: 'transparent', border: '1px solid var(--border-input)', color: 'var(--text-secondary)',
                     }}
                   >
                     OPEN IN NEW TAB
@@ -951,7 +951,7 @@ ${storyContext}`,
                     onClick={() => setFullscreen(true)}
                     style={{
                       fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
-                      background: 'transparent', border: '1px solid #2A2A2A', color: '#B3B3B3',
+                      background: 'transparent', border: '1px solid var(--border-input)', color: 'var(--text-secondary)',
                     }}
                   >
                     FULLSCREEN
@@ -960,9 +960,9 @@ ${storyContext}`,
                     onClick={() => { setEditingHtml(!editingHtml); setEditHtmlValue(currentMockup.html); }}
                     style={{
                       fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
-                      background: editingHtml ? '#1A1A1A' : 'transparent',
-                      border: `1px solid ${editingHtml ? '#FF2A2A' : '#2A2A2A'}`,
-                      color: editingHtml ? '#FF2A2A' : '#B3B3B3',
+                      background: editingHtml ? 'var(--bg-hover)' : 'transparent',
+                      border: `1px solid ${editingHtml ? 'var(--accent)' : 'var(--border-input)'}`,
+                      color: editingHtml ? 'var(--accent)' : 'var(--text-secondary)',
                     }}
                   >
                     {editingHtml ? 'CLOSE EDITOR' : 'EDIT HTML'}
@@ -971,7 +971,7 @@ ${storyContext}`,
                     onClick={() => setConfirmDeleteId(currentMockup.id)}
                     style={{
                       fontSize: '10px', letterSpacing: '.08em', padding: '6px 16px', cursor: 'pointer',
-                      background: 'transparent', border: '1px solid #FF2A2A33', color: '#FF2A2A',
+                      background: 'transparent', border: '1px solid #FF2A2A33', color: 'var(--accent)',
                     }}
                   >
                     DELETE
@@ -986,13 +986,13 @@ ${storyContext}`,
                     alignItems: 'center', justifyContent: 'center',
                   }}>
                     <div style={{
-                      background: '#0D0D0D', border: '1px solid #1F1F1F',
+                      background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
                       padding: '28px 32px', maxWidth: '400px', width: '90%',
                     }}>
-                      <div style={{ fontSize: '12px', letterSpacing: '.1em', color: '#FFFFFF', fontWeight: 700, marginBottom: '12px' }}>
+                      <div style={{ fontSize: '12px', letterSpacing: '.1em', color: 'var(--text-primary)', fontWeight: 700, marginBottom: '12px' }}>
                         DELETE MOCKUP SCREEN
                       </div>
-                      <div style={{ fontSize: '11px', color: '#B3B3B3', lineHeight: 1.6, marginBottom: '24px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '24px' }}>
                         Are you sure you want to delete this mockup screen? This action cannot be undone.
                       </div>
                       <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
@@ -1000,7 +1000,7 @@ ${storyContext}`,
                           onClick={() => setConfirmDeleteId(null)}
                           style={{
                             fontSize: '10px', letterSpacing: '.08em', padding: '8px 20px',
-                            background: 'transparent', border: '1px solid #2A2A2A', color: '#B3B3B3', cursor: 'pointer',
+                            background: 'transparent', border: '1px solid var(--border-input)', color: 'var(--text-secondary)', cursor: 'pointer',
                           }}
                         >
                           CANCEL
@@ -1009,7 +1009,7 @@ ${storyContext}`,
                           onClick={() => { deleteMockup(confirmDeleteId); setConfirmDeleteId(null); }}
                           style={{
                             fontSize: '10px', letterSpacing: '.08em', padding: '8px 20px', fontWeight: 700,
-                            background: '#FF2A2A', border: 'none', color: '#000', cursor: 'pointer',
+                            background: 'var(--accent)', border: 'none', color: 'var(--bg-surface)', cursor: 'pointer',
                           }}
                         >
                           [ DELETE ]
@@ -1039,7 +1039,7 @@ ${storyContext}`,
                       </button>
                       <button
                         onClick={() => setEditingHtml(false)}
-                        style={{ fontSize: '10px', padding: '6px 16px', background: 'transparent', border: '1px solid #2A2A2A', color: '#5A5A5A', cursor: 'pointer' }}
+                        style={{ fontSize: '10px', padding: '6px 16px', background: 'transparent', border: '1px solid var(--border-input)', color: 'var(--text-faint)', cursor: 'pointer' }}
                       >
                         CANCEL
                       </button>
@@ -1051,13 +1051,13 @@ ${storyContext}`,
                 {fullscreen && (
                   <div style={{
                     position: 'fixed', inset: 0, zIndex: 10000,
-                    background: '#000', display: 'flex', flexDirection: 'column',
+                    background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column',
                   }}>
                     <div style={{
                       padding: '12px 24px', display: 'flex', justifyContent: 'space-between',
-                      alignItems: 'center', background: '#0D0D0D', borderBottom: '1px solid #1F1F1F',
+                      alignItems: 'center', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border-default)',
                     }}>
-                      <span style={{ fontSize: '11px', color: '#FF2A2A', letterSpacing: '.1em', fontWeight: 700 }}>
+                      <span style={{ fontSize: '11px', color: 'var(--accent)', letterSpacing: '.1em', fontWeight: 700 }}>
                         MOCKUP PREVIEW — SCREEN {activeMockup + 1}
                       </span>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1067,9 +1067,9 @@ ${storyContext}`,
                             onClick={() => setViewportSize(vp)}
                             style={{
                               fontSize: '9px', padding: '3px 10px',
-                              background: viewportSize === vp ? '#1A1A1A' : 'transparent',
-                              border: `1px solid ${viewportSize === vp ? '#FF2A2A' : '#2A2A2A'}`,
-                              color: viewportSize === vp ? '#FF2A2A' : '#5A5A5A',
+                              background: viewportSize === vp ? 'var(--bg-hover)' : 'transparent',
+                              border: `1px solid ${viewportSize === vp ? 'var(--accent)' : 'var(--border-input)'}`,
+                              color: viewportSize === vp ? 'var(--accent)' : 'var(--text-faint)',
                               cursor: 'pointer',
                             }}
                           >
@@ -1078,13 +1078,13 @@ ${storyContext}`,
                         ))}
                         <button
                           onClick={() => setFullscreen(false)}
-                          style={{ background: '#FF2A2A', border: 'none', color: '#FFF', padding: '5px 16px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', letterSpacing: '.05em' }}
+                          style={{ background: 'var(--accent)', border: 'none', color: 'var(--text-primary)', padding: '5px 16px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', letterSpacing: '.05em' }}
                         >
                           [ CLOSE ]
                         </button>
                       </div>
                     </div>
-                    <div style={{ flex: 1, display: 'flex', justifyContent: 'center', background: '#080808' }}>
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'center', background: 'var(--bg-surface)' }}>
                       <iframe
                         srcDoc={currentMockup.html}
                         sandbox="allow-scripts"
@@ -1102,8 +1102,8 @@ ${storyContext}`,
         {/* Empty state */}
         {mockups.length === 0 && !generatingMockup && (
           <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
-            <div style={{ fontSize: '10px', color: '#3A3A3A', letterSpacing: '.15em', marginBottom: '8px' }}>NO MOCKUPS YET</div>
-            <div style={{ fontSize: '11px', color: '#5A5A5A', lineHeight: 1.6 }}>
+            <div style={{ fontSize: '10px', color: 'var(--border-strong)', letterSpacing: '.15em', marginBottom: '8px' }}>NO MOCKUPS YET</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-faint)', lineHeight: 1.6 }}>
               Describe the screen you want above and click Generate Mockup.<br />
               The AI will create a realistic HTML mockup matching your project design system.
             </div>
@@ -1150,7 +1150,7 @@ ${storyContext}`,
       setSubtasks(subtasks.filter((_, idx) => idx !== i));
     };
 
-    const layerColors: Record<string, string> = { database: '#9B59B6', backend: '#3498DB', frontend: '#E67E22', testing: '#2ECC71', config: '#7F8C8D', devops: '#1ABC9C' };
+    const layerColors: Record<string, string> = { database: '#9B59B6', backend: '#3498DB', frontend: 'var(--warning)', testing: 'var(--success)', config: 'var(--text-muted)', devops: 'var(--success)' };
 
     const savePlanning = () => {
       save({ planning: { subtasks, totalEstimate, notes, impactedFiles, newFiles, conflicts } });
@@ -1209,27 +1209,27 @@ ${storyContext}`,
         </div>
         {subtasks.length > 0 && (
           <div className="ds-card" style={{ padding: '0' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 120px 70px 80px 30px', gap: '10px', padding: '10px 16px', borderBottom: '1px solid #1F1F1F', fontSize: '9px', letterSpacing: '.12em', color: '#5A5A5A' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 120px 70px 80px 30px', gap: '10px', padding: '10px 16px', borderBottom: '1px solid var(--border-default)', fontSize: '9px', letterSpacing: '.12em', color: 'var(--text-faint)' }}>
               <span>LAYER</span><span>TASK</span><span>ASSIGNEE</span><span>EST.</span><span>STATUS</span><span></span>
             </div>
             {subtasks.map((t, i) => (
-              <div key={i} style={{ borderBottom: '1px solid #161616' }}>
+              <div key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 120px 70px 80px 30px', gap: '10px', alignItems: 'center', padding: '10px 16px', fontSize: '12px' }}>
-                  <span style={{ fontSize: '10px', letterSpacing: '.08em', color: layerColors[t.layer] || '#6A6A6A' }}>{t.layer.toUpperCase()}</span>
-                  <span style={{ color: '#B3B3B3' }}>{t.title}</span>
-                  <span style={{ color: '#7A7A7A' }}>{t.assignee || '—'}</span>
-                  <span style={{ color: '#F39C12', fontFamily: '"JetBrains Mono", monospace', fontSize: '11px' }}>{t.estimate || '—'}</span>
+                  <span style={{ fontSize: '10px', letterSpacing: '.08em', color: layerColors[t.layer] || 'var(--text-dim)' }}>{t.layer.toUpperCase()}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{t.title}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{t.assignee || '—'}</span>
+                  <span style={{ color: 'var(--warning)', fontFamily: '"JetBrains Mono", monospace', fontSize: '11px' }}>{t.estimate || '—'}</span>
                   <select className="ds-input" style={{ fontSize: '10px', padding: '2px 4px' }} value={t.status} onChange={(e) => { const u = [...subtasks]; u[i] = { ...t, status: e.target.value }; setSubtasks(u); }}>
                     <option value="todo">TODO</option>
                     <option value="in-progress">IN PROGRESS</option>
                     <option value="done">DONE</option>
                   </select>
-                  <span style={{ color: '#3A3A3A', cursor: 'pointer', textAlign: 'center' }} onClick={() => removeTask(i)}>×</span>
+                  <span style={{ color: 'var(--border-strong)', cursor: 'pointer', textAlign: 'center' }} onClick={() => removeTask(i)}>×</span>
                 </div>
                 {t.files && t.files.length > 0 && (
                   <div style={{ padding: '0 16px 8px 110px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     {t.files.map((f, fi) => (
-                      <span key={fi} style={{ fontSize: '9px', color: '#6A6A6A', background: '#111', padding: '2px 6px', border: '1px solid #1F1F1F', fontFamily: '"JetBrains Mono", monospace' }}>{f}</span>
+                      <span key={fi} style={{ fontSize: '9px', color: 'var(--text-dim)', background: 'var(--bg-elevated)', padding: '2px 6px', border: '1px solid var(--border-default)', fontFamily: '"JetBrains Mono", monospace' }}>{f}</span>
                     ))}
                   </div>
                 )}
@@ -1243,15 +1243,15 @@ ${storyContext}`,
           <div className="ds-card" style={{ padding: '20px', borderColor: '#F39C1233' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F39C12' }} />
-                <div className="ds-label" style={{ color: '#F39C12' }}>FILE IMPACT ANALYSIS</div>
-                <span style={{ fontSize: '10px', color: '#5A5A5A' }}>{uniqueFiles.length} file{uniqueFiles.length !== 1 ? 's' : ''}</span>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--warning)' }} />
+                <div className="ds-label" style={{ color: 'var(--warning)' }}>FILE IMPACT ANALYSIS</div>
+                <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>{uniqueFiles.length} file{uniqueFiles.length !== 1 ? 's' : ''}</span>
               </div>
               <button
                 className="ds-btn-ghost ds-btn-sm"
                 onClick={checkConflicts}
                 disabled={checkingConflicts}
-                style={{ color: '#FF2A2A', borderColor: '#FF2A2A33', fontSize: '10px', letterSpacing: '.1em' }}
+                style={{ color: 'var(--accent)', borderColor: '#FF2A2A33', fontSize: '10px', letterSpacing: '.1em' }}
               >
                 {checkingConflicts ? '[ CHECKING... ]' : '[ CHECK CONFLICTS ]'}
               </button>
@@ -1259,10 +1259,10 @@ ${storyContext}`,
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               {impactedFiles.length > 0 && (
                 <div>
-                  <div style={{ fontSize: '9px', letterSpacing: '.12em', color: '#F39C12', marginBottom: '6px' }}>MODIFIED FILES ({impactedFiles.length})</div>
+                  <div style={{ fontSize: '9px', letterSpacing: '.12em', color: 'var(--warning)', marginBottom: '6px' }}>MODIFIED FILES ({impactedFiles.length})</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     {impactedFiles.map((f, i) => (
-                      <span key={i} style={{ fontSize: '10px', color: '#B3B3B3', fontFamily: '"JetBrains Mono", monospace', padding: '3px 8px', background: '#0D0D0D', border: '1px solid #1F1F1F' }}>
+                      <span key={i} style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: '"JetBrains Mono", monospace', padding: '3px 8px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)' }}>
                         ✎ {f}
                       </span>
                     ))}
@@ -1271,10 +1271,10 @@ ${storyContext}`,
               )}
               {newFiles.length > 0 && (
                 <div>
-                  <div style={{ fontSize: '9px', letterSpacing: '.12em', color: '#2ECC71', marginBottom: '6px' }}>NEW FILES ({newFiles.length})</div>
+                  <div style={{ fontSize: '9px', letterSpacing: '.12em', color: 'var(--success)', marginBottom: '6px' }}>NEW FILES ({newFiles.length})</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     {newFiles.map((f, i) => (
-                      <span key={i} style={{ fontSize: '10px', color: '#B3B3B3', fontFamily: '"JetBrains Mono", monospace', padding: '3px 8px', background: '#0D0D0D', border: '1px solid #1A3A1A' }}>
+                      <span key={i} style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: '"JetBrains Mono", monospace', padding: '3px 8px', background: 'var(--bg-elevated)', border: '1px solid #1A3A1A' }}>
                         + {f}
                       </span>
                     ))}
@@ -1287,22 +1287,22 @@ ${storyContext}`,
 
         {/* CONFLICT WARNINGS */}
         {conflicts && conflicts.length > 0 && (
-          <div className="ds-card" style={{ padding: '20px', borderColor: '#FF2A2A', background: '#1A0808' }}>
+          <div className="ds-card" style={{ padding: '20px', borderColor: 'var(--accent)', background: 'var(--bg-surface)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
               <span style={{ fontSize: '16px' }}>⚠</span>
-              <div className="ds-label" style={{ color: '#FF2A2A' }}>CONFLICT DETECTED — {conflicts.length} OVERLAPPING STOR{conflicts.length !== 1 ? 'IES' : 'Y'}</div>
+              <div className="ds-label" style={{ color: 'var(--accent)' }}>CONFLICT DETECTED — {conflicts.length} OVERLAPPING STOR{conflicts.length !== 1 ? 'IES' : 'Y'}</div>
             </div>
-            <div style={{ fontSize: '11px', color: '#FF8A8A', marginBottom: '12px', lineHeight: 1.6 }}>
+            <div style={{ fontSize: '11px', color: 'var(--accent)', marginBottom: '12px', lineHeight: 1.6 }}>
               The following user stories modify the same files. Assigning these to different developers simultaneously may cause merge conflicts.
             </div>
             {conflicts.map((c, ci) => (
-              <div key={ci} style={{ padding: '10px 14px', background: '#0D0D0D', border: '1px solid #FF2A2A33', marginBottom: '8px' }}>
-                <div style={{ fontSize: '11px', color: '#FFFFFF', fontWeight: 700, marginBottom: '6px' }}>
+              <div key={ci} style={{ padding: '10px 14px', background: 'var(--bg-elevated)', border: '1px solid #FF2A2A33', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-primary)', fontWeight: 700, marginBottom: '6px' }}>
                   {c.storyTitle}
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {c.sharedFiles.map((f, fi) => (
-                    <span key={fi} style={{ fontSize: '9px', color: '#FF2A2A', background: '#1A0505', padding: '2px 6px', border: '1px solid #FF2A2A44', fontFamily: '"JetBrains Mono", monospace' }}>
+                    <span key={fi} style={{ fontSize: '9px', color: 'var(--accent)', background: 'var(--bg-surface)', padding: '2px 6px', border: '1px solid #FF2A2A44', fontFamily: '"JetBrains Mono", monospace' }}>
                       {f}
                     </span>
                   ))}
@@ -1374,20 +1374,20 @@ ${storyContext}`,
 
     if (!story.githubIssueNumber) return (
       <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
-        <div style={{ fontSize: '12px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>NO GITHUB ISSUE LINKED</div>
-        <div style={{ fontSize: '11px', color: '#3A3A3A' }}>Create a GitHub issue first from the Planning tab to track development.</div>
+        <div style={{ fontSize: '12px', color: 'var(--text-faint)', letterSpacing: '.1em', marginBottom: '8px' }}>NO GITHUB ISSUE LINKED</div>
+        <div style={{ fontSize: '11px', color: 'var(--border-strong)' }}>Create a GitHub issue first from the Planning tab to track development.</div>
       </div>
     );
     if (loading) return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '20px' }}>
-        <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
-        <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>LOADING DEVELOPMENT DATA...</span>
+        <div style={{ width: '14px', height: '14px', border: '2px solid var(--accent)33', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
+        <span style={{ fontSize: '10px', color: 'var(--accent)', letterSpacing: '.1em' }}>LOADING DEVELOPMENT DATA...</span>
       </div>
     );
-    if (error) return <div style={{ padding: '20px', fontSize: '11px', color: '#FF2A2A' }}>{error}</div>;
+    if (error) return <div style={{ padding: '20px', fontSize: '11px', color: 'var(--accent)' }}>{error}</div>;
 
     const pr = devData?.pullRequests?.[0];
-    const PR_STATE_COLORS: Record<string, string> = { open: '#2ECC71', merged: '#8B5CF6', closed: '#FF2A2A', draft: '#6A6A6A' };
+    const PR_STATE_COLORS: Record<string, string> = { open: 'var(--success)', merged: '#8B5CF6', closed: 'var(--accent)', draft: 'var(--text-dim)' };
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1398,15 +1398,15 @@ ${storyContext}`,
             <div className="ds-label" style={{ marginBottom: '12px' }}>BRANCH</div>
             {devData?.branch ? (
               <>
-                <div style={{ fontSize: '13px', color: '#FFFFFF', fontFamily: 'JetBrains Mono', marginBottom: '8px' }}>{devData.branch}</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'JetBrains Mono', marginBottom: '8px' }}>{devData.branch}</div>
                 {pr && (
-                  <div style={{ fontSize: '10px', color: '#5A5A5A' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
                     {pr.commits.length} commits · into {pr.baseBranch}
                   </div>
                 )}
               </>
             ) : (
-              <div style={{ fontSize: '11px', color: '#3A3A3A' }}>No branch detected yet</div>
+              <div style={{ fontSize: '11px', color: 'var(--border-strong)' }}>No branch detected yet</div>
             )}
           </div>
 
@@ -1416,22 +1416,22 @@ ${storyContext}`,
             {pr ? (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '9px', letterSpacing: '.1em', padding: '2px 8px', border: `1px solid ${PR_STATE_COLORS[pr.state] || '#5A5A5A'}`, color: PR_STATE_COLORS[pr.state] || '#5A5A5A' }}>
+                  <span style={{ fontSize: '9px', letterSpacing: '.1em', padding: '2px 8px', border: `1px solid ${PR_STATE_COLORS[pr.state] || 'var(--text-faint)'}`, color: PR_STATE_COLORS[pr.state] || 'var(--text-faint)' }}>
                     {pr.state.toUpperCase()}
                   </span>
-                  <a href={pr.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#FFFFFF', textDecoration: 'none', borderBottom: '1px solid #2A2A2A' }}>
+                  <a href={pr.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--text-primary)', textDecoration: 'none', borderBottom: '1px solid var(--border-input)' }}>
                     PR #{pr.number}
                   </a>
                 </div>
-                <div style={{ fontSize: '11px', color: '#B3B3B3', marginBottom: '8px' }}>{pr.title}</div>
-                <div style={{ fontSize: '10px', color: '#5A5A5A' }}>
-                  <span style={{ color: '#2ECC71' }}>+{pr.additions}</span> <span style={{ color: '#FF2A2A' }}>-{pr.deletions}</span> · {pr.changedFiles} files
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>{pr.title}</div>
+                <div style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
+                  <span style={{ color: 'var(--success)' }}>+{pr.additions}</span> <span style={{ color: 'var(--accent)' }}>-{pr.deletions}</span> · {pr.changedFiles} files
                   {pr.authorAvatar && <img src={pr.authorAvatar} style={{ width: '16px', height: '16px', borderRadius: '50%', marginLeft: '8px', verticalAlign: 'middle' }} />}
                   <span style={{ marginLeft: '4px' }}>@{pr.author}</span>
                 </div>
               </>
             ) : (
-              <div style={{ fontSize: '11px', color: '#3A3A3A' }}>No pull request linked yet</div>
+              <div style={{ fontSize: '11px', color: 'var(--border-strong)' }}>No pull request linked yet</div>
             )}
           </div>
         </div>
@@ -1445,21 +1445,21 @@ ${storyContext}`,
                 fontSize: '9px', letterSpacing: '.1em', padding: '3px 10px',
                 background: checkData.summary.failed > 0 ? '#FF2A2A15' : checkData.summary.pending > 0 ? '#F39C1215' : '#2ECC7115',
                 border: `1px solid ${checkData.summary.failed > 0 ? '#FF2A2A33' : checkData.summary.pending > 0 ? '#F39C1233' : '#2ECC7133'}`,
-                color: checkData.summary.failed > 0 ? '#FF2A2A' : checkData.summary.pending > 0 ? '#F39C12' : '#2ECC71',
+                color: checkData.summary.failed > 0 ? 'var(--accent)' : checkData.summary.pending > 0 ? 'var(--warning)' : 'var(--success)',
               }}>
                 {checkData.summary.failed > 0 ? `${checkData.summary.failed} FAILING` : checkData.summary.pending > 0 ? `${checkData.summary.pending} PENDING` : 'ALL PASSED'}
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {checkData.checkRuns.map((cr: any) => (
-                <div key={cr.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#0A0A0A', border: '1px solid #1A1A1A' }}>
+                <div key={cr.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--bg-primary)', border: '1px solid #1A1A1A' }}>
                   <span style={{ fontSize: '12px' }}>
                     {cr.conclusion === 'success' ? '✓' : cr.conclusion === 'failure' ? '✗' : cr.status === 'in_progress' ? '◎' : '○'}
                   </span>
-                  <span style={{ fontSize: '11px', color: '#B3B3B3', flex: 1 }}>{cr.name}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', flex: 1 }}>{cr.name}</span>
                   <span style={{
                     fontSize: '9px', letterSpacing: '.08em',
-                    color: cr.conclusion === 'success' ? '#2ECC71' : cr.conclusion === 'failure' ? '#FF2A2A' : '#F39C12',
+                    color: cr.conclusion === 'success' ? 'var(--success)' : cr.conclusion === 'failure' ? 'var(--accent)' : 'var(--warning)',
                   }}>
                     {cr.conclusion ? cr.conclusion.toUpperCase() : cr.status.toUpperCase()}
                   </span>
@@ -1475,10 +1475,10 @@ ${storyContext}`,
             <div className="ds-label" style={{ marginBottom: '12px' }}>RECENT COMMITS ({pr.commits.length})</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {pr.commits.slice(0, 15).map((c: any, i: number) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 12px', background: i % 2 === 0 ? '#0A0A0A' : 'transparent' }}>
-                  <span style={{ fontSize: '10px', color: '#FF2A2A', fontFamily: 'JetBrains Mono' }}>{c.sha}</span>
-                  <span style={{ fontSize: '11px', color: '#B3B3B3', flex: 1 }}>{c.message}</span>
-                  <span style={{ fontSize: '10px', color: '#5A5A5A' }}>{c.author}</span>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 12px', background: i % 2 === 0 ? 'var(--bg-primary)' : 'transparent' }}>
+                  <span style={{ fontSize: '10px', color: 'var(--accent)', fontFamily: 'JetBrains Mono' }}>{c.sha}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', flex: 1 }}>{c.message}</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>{c.author}</span>
                 </div>
               ))}
             </div>
@@ -1488,7 +1488,7 @@ ${storyContext}`,
         {/* No activity state */}
         {!pr && !devData?.branch && (
           <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
-            <div style={{ fontSize: '11px', color: '#5A5A5A', letterSpacing: '.08em', lineHeight: 1.8 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-faint)', letterSpacing: '.08em', lineHeight: 1.8 }}>
               No development activity detected yet.<br />
               Create a branch or PR that references issue #{story.githubIssueNumber} to track progress here.
             </div>
@@ -1498,45 +1498,79 @@ ${storyContext}`,
     );
   };
 
-  // --- TAB 9: CODE REVIEW ---
-  const CodeReviewTab = () => {
-    const [reviewData, setReviewData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+  // --- TAB 9: CODE REVIEW (state lifted to parent to survive remounts) ---
+  const [crTabReviewData, setCrTabReviewData] = useState<any>(null);
+  const [crTabLoading, setCrTabLoading] = useState(false);
+  const [crTabError, setCrTabError] = useState('');
+  const crTabFetched = useRef(false);
 
-    useEffect(() => {
-      const prNumber = story.githubPrNumber;
-      if (!prNumber) { setLoading(false); return; }
-      (async () => {
-        try {
-          const res = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=reviews&prNumber=${prNumber}`);
-          const data = await res.json();
-          if (res.ok) setReviewData(data); else setError(data.error);
-        } catch (e: any) { setError(e.message); }
-        setLoading(false);
-      })();
-    }, [story.id, story.githubPrNumber]);
+  // AI Evaluation state (lifted to parent)
+  const [aiEvaluation, setAiEvaluation] = useState<any>(story.codeEvaluation || null);
+  const [aiEvalRunning, setAiEvalRunning] = useState(false);
+  const [aiEvalError, setAiEvalError] = useState('');
+
+  useEffect(() => {
+    if (activeTab !== 'codereview') return;
+    if (!story.githubPrNumber) return;
+    if (crTabFetched.current) return;
+    crTabFetched.current = true;
+    setCrTabLoading(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=reviews&prNumber=${story.githubPrNumber}`);
+        const data = await res.json();
+        if (res.ok) setCrTabReviewData(data); else setCrTabError(data.error);
+      } catch (e: any) { setCrTabError(e.message); }
+      setCrTabLoading(false);
+    })();
+  }, [activeTab, story.id, story.githubPrNumber]);
+
+  const runAiEvaluation = async () => {
+    setAiEvalRunning(true);
+    setAiEvalError('');
+    try {
+      const res = await fetch(`/api/projects/${project.id}/github-dev/evaluate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storyId: story.id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        console.log('[AI Eval] Result:', data.evaluation);
+        setAiEvaluation(data.evaluation);
+        setStory((prev: any) => ({ ...prev, codeEvaluation: data.evaluation }));
+      } else {
+        setAiEvalError(data.error || 'Evaluation failed');
+      }
+    } catch (e: any) { setAiEvalError(e.message); }
+    setAiEvalRunning(false);
+  };
+
+  const CodeReviewTab = () => {
+    const reviewData = crTabReviewData;
+    const loading = crTabLoading;
+    const error = crTabError;
 
     const DECISION_COLORS: Record<string, { bg: string; border: string; text: string; label: string }> = {
-      approved: { bg: '#2ECC7115', border: '#2ECC7133', text: '#2ECC71', label: 'APPROVED' },
-      changes_requested: { bg: '#FF2A2A15', border: '#FF2A2A33', text: '#FF2A2A', label: 'CHANGES REQUESTED' },
-      pending: { bg: '#F39C1215', border: '#F39C1233', text: '#F39C12', label: 'PENDING REVIEW' },
+      approved: { bg: '#2ECC7115', border: '#2ECC7133', text: 'var(--success)', label: 'APPROVED' },
+      changes_requested: { bg: '#FF2A2A15', border: '#FF2A2A33', text: 'var(--accent)', label: 'CHANGES REQUESTED' },
+      pending: { bg: '#F39C1215', border: '#F39C1233', text: 'var(--warning)', label: 'PENDING REVIEW' },
     };
-    const REVIEW_STATE_COLORS: Record<string, string> = { APPROVED: '#2ECC71', CHANGES_REQUESTED: '#FF2A2A', COMMENTED: '#F39C12', PENDING: '#6A6A6A', DISMISSED: '#5A5A5A' };
+    const REVIEW_STATE_COLORS: Record<string, string> = { APPROVED: 'var(--success)', CHANGES_REQUESTED: 'var(--accent)', COMMENTED: 'var(--warning)', PENDING: 'var(--text-dim)', DISMISSED: 'var(--text-faint)' };
 
     if (!story.githubPrNumber) return (
       <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
-        <div style={{ fontSize: '12px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>NO PULL REQUEST LINKED</div>
-        <div style={{ fontSize: '11px', color: '#3A3A3A' }}>A pull request must be created and linked to the issue before code review can be tracked.</div>
+        <div style={{ fontSize: '12px', color: 'var(--text-faint)', letterSpacing: '.1em', marginBottom: '8px' }}>NO PULL REQUEST LINKED</div>
+        <div style={{ fontSize: '11px', color: 'var(--border-strong)' }}>A pull request must be created and linked to the issue before code review can be tracked.</div>
       </div>
     );
     if (loading) return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '20px' }}>
-        <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
-        <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>LOADING CODE REVIEW...</span>
+        <div style={{ width: '14px', height: '14px', border: '2px solid var(--accent)33', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
+        <span style={{ fontSize: '10px', color: 'var(--accent)', letterSpacing: '.1em' }}>LOADING CODE REVIEW...</span>
       </div>
     );
-    if (error) return <div style={{ padding: '20px', fontSize: '11px', color: '#FF2A2A' }}>{error}</div>;
+    if (error) return <div style={{ padding: '20px', fontSize: '11px', color: 'var(--accent)' }}>{error}</div>;
 
     const dc = DECISION_COLORS[reviewData?.decision || 'pending'];
 
@@ -1545,7 +1579,7 @@ ${storyContext}`,
         {/* Decision Banner */}
         <div style={{ padding: '16px 20px', background: dc.bg, border: `1px solid ${dc.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: '12px', letterSpacing: '.12em', color: dc.text, fontWeight: 700 }}>{dc.label}</div>
-          <div style={{ fontSize: '10px', color: '#5A5A5A' }}>
+          <div style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
             {reviewData?.reviews?.length || 0} review(s) · {reviewData?.comments?.length || 0} comment(s)
           </div>
         </div>
@@ -1556,22 +1590,22 @@ ${storyContext}`,
             <div className="ds-label" style={{ marginBottom: '12px' }}>REVIEWERS</div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {reviewData.reviews.map((r: any, i: number) => (
-                <div key={i} style={{ padding: '12px 16px', background: '#0A0A0A', border: '1px solid #1A1A1A', display: 'flex', alignItems: 'center', gap: '10px', minWidth: '160px' }}>
+                <div key={i} style={{ padding: '12px 16px', background: 'var(--bg-primary)', border: '1px solid #1A1A1A', display: 'flex', alignItems: 'center', gap: '10px', minWidth: '160px' }}>
                   {r.avatar && <img src={r.avatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} />}
                   <div>
-                    <div style={{ fontSize: '11px', color: '#FFFFFF' }}>@{r.reviewer}</div>
-                    <div style={{ fontSize: '9px', letterSpacing: '.08em', color: REVIEW_STATE_COLORS[r.state] || '#5A5A5A', marginTop: '2px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-primary)' }}>@{r.reviewer}</div>
+                    <div style={{ fontSize: '9px', letterSpacing: '.08em', color: REVIEW_STATE_COLORS[r.state] || 'var(--text-faint)', marginTop: '2px' }}>
                       {r.state.replace(/_/g, ' ')}
                     </div>
                   </div>
                 </div>
               ))}
               {reviewData.requestedReviewers.map((r: any, i: number) => (
-                <div key={`req-${i}`} style={{ padding: '12px 16px', background: '#0A0A0A', border: '1px dashed #2A2A2A', display: 'flex', alignItems: 'center', gap: '10px', minWidth: '160px' }}>
+                <div key={`req-${i}`} style={{ padding: '12px 16px', background: 'var(--bg-primary)', border: '1px dashed #2A2A2A', display: 'flex', alignItems: 'center', gap: '10px', minWidth: '160px' }}>
                   {r.avatar && <img src={r.avatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} />}
                   <div>
-                    <div style={{ fontSize: '11px', color: '#7A7A7A' }}>@{r.login}</div>
-                    <div style={{ fontSize: '9px', letterSpacing: '.08em', color: '#F39C12', marginTop: '2px' }}>AWAITING REVIEW</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>@{r.login}</div>
+                    <div style={{ fontSize: '9px', letterSpacing: '.08em', color: 'var(--warning)', marginTop: '2px' }}>AWAITING REVIEW</div>
                   </div>
                 </div>
               ))}
@@ -1587,22 +1621,22 @@ ${storyContext}`,
               {reviewData.comments.filter((c: any) => !c.inReplyToId).map((c: any) => {
                 const replies = reviewData.comments.filter((r: any) => r.inReplyToId === c.id);
                 return (
-                  <div key={c.id} style={{ border: '1px solid #1A1A1A', background: '#0A0A0A' }}>
+                  <div key={c.id} style={{ border: '1px solid #1A1A1A', background: 'var(--bg-primary)' }}>
                     <div style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                         {c.avatar && <img src={c.avatar} style={{ width: '18px', height: '18px', borderRadius: '50%' }} />}
-                        <span style={{ fontSize: '11px', color: '#FFFFFF' }}>@{c.author}</span>
-                        <span style={{ fontSize: '10px', color: '#FF2A2A', fontFamily: 'JetBrains Mono' }}>{c.path}:{c.line}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-primary)' }}>@{c.author}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--accent)', fontFamily: 'JetBrains Mono' }}>{c.path}:{c.line}</span>
                       </div>
-                      <div style={{ fontSize: '11px', color: '#B3B3B3', lineHeight: 1.6, paddingLeft: '26px' }}>{c.body}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.6, paddingLeft: '26px' }}>{c.body}</div>
                     </div>
                     {replies.map((r: any) => (
-                      <div key={r.id} style={{ padding: '10px 16px 10px 42px', borderTop: '1px solid #1A1A1A', background: '#0D0D0D' }}>
+                      <div key={r.id} style={{ padding: '10px 16px 10px 42px', borderTop: '1px solid #1A1A1A', background: 'var(--bg-elevated)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                           {r.avatar && <img src={r.avatar} style={{ width: '14px', height: '14px', borderRadius: '50%' }} />}
-                          <span style={{ fontSize: '10px', color: '#B3B3B3' }}>@{r.author}</span>
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>@{r.author}</span>
                         </div>
-                        <div style={{ fontSize: '10px', color: '#7A7A7A', lineHeight: 1.5 }}>{r.body}</div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.5 }}>{r.body}</div>
                       </div>
                     ))}
                   </div>
@@ -1615,43 +1649,23 @@ ${storyContext}`,
         {/* No reviews yet */}
         {(!reviewData?.reviews?.length && !reviewData?.requestedReviewers?.length && !reviewData?.comments?.length) && (
           <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
-            <div style={{ fontSize: '11px', color: '#5A5A5A', letterSpacing: '.08em' }}>No reviews submitted yet.</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-faint)', letterSpacing: '.08em' }}>No reviews submitted yet.</div>
           </div>
         )}
 
         {/* AI Code Evaluation */}
-        <AiEvaluationSection storyId={story.id} projectId={project.id} existingEvaluation={story.codeEvaluation as any} />
+        <AiEvaluationSection />
       </div>
     );
   };
 
-  // --- AI Evaluation Component (used inside CodeReviewTab) ---
-  const AiEvaluationSection = ({ storyId, projectId, existingEvaluation }: { storyId: string; projectId: string; existingEvaluation: any }) => {
-    const [evaluation, setEvaluation] = useState<any>(existingEvaluation || null);
-    const [running, setRunning] = useState(false);
-    const [error, setError] = useState('');
+  // --- AI Evaluation Component (uses parent-level state to survive remounts) ---
+  const AiEvaluationSection = () => {
+    const evaluation = aiEvaluation;
+    const running = aiEvalRunning;
+    const error = aiEvalError;
 
-    const runEvaluation = async () => {
-      setRunning(true);
-      setError('');
-      try {
-        const res = await fetch(`/api/projects/${projectId}/github-dev/evaluate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ storyId }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setEvaluation(data.evaluation);
-          setStory((prev: any) => ({ ...prev, codeEvaluation: data.evaluation }));
-        } else {
-          setError(data.error || 'Evaluation failed');
-        }
-      } catch (e: any) { setError(e.message); }
-      setRunning(false);
-    };
-
-    const SEVERITY_COLORS: Record<string, string> = { high: '#FF2A2A', medium: '#F39C12', low: '#5A5A5A' };
+    const SEVERITY_COLORS: Record<string, string> = { high: 'var(--accent)', medium: 'var(--warning)', low: 'var(--text-faint)' };
 
     return (
       <div className="ds-card" style={{ padding: '20px' }}>
@@ -1660,7 +1674,7 @@ ${storyContext}`,
           <button
             className="ds-btn-primary ds-btn-sm"
             disabled={running || !story.githubPrNumber}
-            onClick={runEvaluation}
+            onClick={runAiEvaluation}
             style={{ letterSpacing: '.1em' }}
           >
             {running ? '[ EVALUATING... ]' : evaluation ? '[ RE-EVALUATE ]' : '[ RUN EVALUATION ]'}
@@ -1669,29 +1683,29 @@ ${storyContext}`,
 
         {running && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 0' }}>
-            <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
-            <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>ANALYZING PR DIFF AGAINST CRITERIA...</span>
+            <div style={{ width: '14px', height: '14px', border: '2px solid var(--accent)33', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
+            <span style={{ fontSize: '10px', color: 'var(--accent)', letterSpacing: '.1em' }}>ANALYZING PR DIFF AGAINST CRITERIA...</span>
           </div>
         )}
 
-        {error && <div style={{ padding: '12px', fontSize: '11px', color: '#FF2A2A', background: '#FF2A2A10', border: '1px solid #FF2A2A33', marginBottom: '12px' }}>{error}</div>}
+        {error && <div style={{ padding: '12px', fontSize: '11px', color: 'var(--accent)', background: '#FF2A2A10', border: '1px solid #FF2A2A33', marginBottom: '12px' }}>{error}</div>}
 
         {evaluation && !running && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Score Bar */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
-                <span style={{ fontSize: '24px', fontWeight: 700, color: evaluation.score >= 80 ? '#2ECC71' : evaluation.score >= 50 ? '#F39C12' : '#FF2A2A', fontFamily: 'JetBrains Mono' }}>
+                <span style={{ fontSize: '24px', fontWeight: 700, color: evaluation.score >= 80 ? 'var(--success)' : evaluation.score >= 50 ? 'var(--warning)' : 'var(--accent)', fontFamily: 'JetBrains Mono' }}>
                   {evaluation.score}%
                 </span>
-                <span style={{ fontSize: '9px', color: '#5A5A5A', letterSpacing: '.08em' }}>
+                <span style={{ fontSize: '9px', color: 'var(--text-faint)', letterSpacing: '.08em' }}>
                   {evaluation.model} · {evaluation.evaluatedAt ? new Date(evaluation.evaluatedAt).toLocaleDateString() : ''}
                 </span>
               </div>
-              <div style={{ width: '100%', height: '6px', background: '#1A1A1A', overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: '6px', background: 'var(--bg-hover)', overflow: 'hidden' }}>
                 <div style={{
                   width: `${evaluation.score}%`, height: '100%',
-                  background: evaluation.score >= 80 ? '#2ECC71' : evaluation.score >= 50 ? '#F39C12' : '#FF2A2A',
+                  background: evaluation.score >= 80 ? 'var(--success)' : evaluation.score >= 50 ? 'var(--warning)' : 'var(--accent)',
                   transition: 'width .5s ease',
                 }} />
               </div>
@@ -1699,7 +1713,7 @@ ${storyContext}`,
 
             {/* Summary */}
             {evaluation.summary && (
-              <div style={{ fontSize: '11px', color: '#B3B3B3', lineHeight: 1.7, padding: '12px', background: '#0A0A0A', border: '1px solid #1A1A1A' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.7, padding: '12px', background: 'var(--bg-primary)', border: '1px solid #1A1A1A' }}>
                 {evaluation.summary}
               </div>
             )}
@@ -1707,16 +1721,16 @@ ${storyContext}`,
             {/* Acceptance Criteria Results */}
             {evaluation.criteriaResults?.length > 0 && (
               <div>
-                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>ACCEPTANCE CRITERIA</div>
+                <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.1em', marginBottom: '8px' }}>ACCEPTANCE CRITERIA</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {evaluation.criteriaResults.map((cr: any, i: number) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 12px', background: '#0A0A0A', border: '1px solid #1A1A1A' }}>
-                      <span style={{ fontSize: '12px', color: cr.met ? '#2ECC71' : '#FF2A2A', flexShrink: 0, marginTop: '1px' }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 12px', background: 'var(--bg-primary)', border: '1px solid #1A1A1A' }}>
+                      <span style={{ fontSize: '12px', color: cr.met ? 'var(--success)' : 'var(--accent)', flexShrink: 0, marginTop: '1px' }}>
                         {cr.met ? '✓' : '✗'}
                       </span>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '11px', color: cr.met ? '#B3B3B3' : '#FFFFFF' }}>{cr.criterion}</div>
-                        {cr.evidence && <div style={{ fontSize: '10px', color: '#5A5A5A', marginTop: '4px' }}>{cr.evidence}</div>}
+                        <div style={{ fontSize: '11px', color: cr.met ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{cr.criterion}</div>
+                        {cr.evidence && <div style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '4px' }}>{cr.evidence}</div>}
                       </div>
                     </div>
                   ))}
@@ -1727,16 +1741,16 @@ ${storyContext}`,
             {/* Requirement Results */}
             {evaluation.requirementResults?.length > 0 && (
               <div>
-                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>REQUIREMENTS</div>
+                <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.1em', marginBottom: '8px' }}>REQUIREMENTS</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {evaluation.requirementResults.map((rr: any, i: number) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 12px', background: '#0A0A0A', border: '1px solid #1A1A1A' }}>
-                      <span style={{ fontSize: '12px', color: rr.met ? '#2ECC71' : '#FF2A2A', flexShrink: 0, marginTop: '1px' }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 12px', background: 'var(--bg-primary)', border: '1px solid #1A1A1A' }}>
+                      <span style={{ fontSize: '12px', color: rr.met ? 'var(--success)' : 'var(--accent)', flexShrink: 0, marginTop: '1px' }}>
                         {rr.met ? '✓' : '✗'}
                       </span>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '11px', color: '#B3B3B3' }}>{rr.requirement}</div>
-                        {rr.evidence && <div style={{ fontSize: '10px', color: '#5A5A5A', marginTop: '4px' }}>{rr.evidence}</div>}
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{rr.requirement}</div>
+                        {rr.evidence && <div style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '4px' }}>{rr.evidence}</div>}
                       </div>
                     </div>
                   ))}
@@ -1747,14 +1761,14 @@ ${storyContext}`,
             {/* Risks */}
             {evaluation.risks?.length > 0 && (
               <div>
-                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>RISKS DETECTED</div>
+                <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.1em', marginBottom: '8px' }}>RISKS DETECTED</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {evaluation.risks.map((r: any, i: number) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#0A0A0A', border: `1px solid ${SEVERITY_COLORS[r.severity] || '#1A1A1A'}33` }}>
-                      <span style={{ fontSize: '9px', letterSpacing: '.08em', padding: '2px 6px', border: `1px solid ${SEVERITY_COLORS[r.severity] || '#5A5A5A'}`, color: SEVERITY_COLORS[r.severity] || '#5A5A5A' }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--bg-primary)', border: `1px solid ${SEVERITY_COLORS[r.severity] || 'var(--bg-hover)'}33` }}>
+                      <span style={{ fontSize: '9px', letterSpacing: '.08em', padding: '2px 6px', border: `1px solid ${SEVERITY_COLORS[r.severity] || 'var(--text-faint)'}`, color: SEVERITY_COLORS[r.severity] || 'var(--text-faint)' }}>
                         {(r.severity || 'info').toUpperCase()}
                       </span>
-                      <span style={{ fontSize: '11px', color: '#B3B3B3' }}>{r.description}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{r.description}</span>
                     </div>
                   ))}
                 </div>
@@ -1764,10 +1778,10 @@ ${storyContext}`,
             {/* Suggestions */}
             {evaluation.suggestions?.length > 0 && (
               <div>
-                <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>SUGGESTIONS</div>
+                <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.1em', marginBottom: '8px' }}>SUGGESTIONS</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {evaluation.suggestions.map((s: string, i: number) => (
-                    <div key={i} style={{ padding: '8px 12px', background: '#0A0A0A', border: '1px solid #1A1A1A', fontSize: '11px', color: '#B3B3B3' }}>
+                    <div key={i} style={{ padding: '8px 12px', background: 'var(--bg-primary)', border: '1px solid #1A1A1A', fontSize: '11px', color: 'var(--text-secondary)' }}>
                       {s}
                     </div>
                   ))}
@@ -1778,7 +1792,7 @@ ${storyContext}`,
         )}
 
         {!evaluation && !running && (
-          <div style={{ fontSize: '11px', color: '#3A3A3A', padding: '12px 0' }}>
+          <div style={{ fontSize: '11px', color: 'var(--border-strong)', padding: '12px 0' }}>
             Run an AI evaluation to check the PR diff against the acceptance criteria, requirements, and gherkin scenarios.
           </div>
         )}
@@ -1807,17 +1821,17 @@ ${storyContext}`,
 
     if (!story.githubPrNumber) return (
       <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
-        <div style={{ fontSize: '12px', color: '#5A5A5A', letterSpacing: '.1em', marginBottom: '8px' }}>NO PULL REQUEST LINKED</div>
-        <div style={{ fontSize: '11px', color: '#3A3A3A' }}>A pull request must exist before tracking ship status.</div>
+        <div style={{ fontSize: '12px', color: 'var(--text-faint)', letterSpacing: '.1em', marginBottom: '8px' }}>NO PULL REQUEST LINKED</div>
+        <div style={{ fontSize: '11px', color: 'var(--border-strong)' }}>A pull request must exist before tracking ship status.</div>
       </div>
     );
     if (loading) return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '20px' }}>
-        <div style={{ width: '14px', height: '14px', border: '2px solid #FF2A2A33', borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
-        <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.1em' }}>LOADING SHIP STATUS...</span>
+        <div style={{ width: '14px', height: '14px', border: '2px solid var(--accent)33', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'dsSpin 1s linear infinite' }} />
+        <span style={{ fontSize: '10px', color: 'var(--accent)', letterSpacing: '.1em' }}>LOADING SHIP STATUS...</span>
       </div>
     );
-    if (error) return <div style={{ padding: '20px', fontSize: '11px', color: '#FF2A2A' }}>{error}</div>;
+    if (error) return <div style={{ padding: '20px', fontSize: '11px', color: 'var(--accent)' }}>{error}</div>;
 
     const merge = shipData?.merge;
     const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
@@ -1832,19 +1846,19 @@ ${storyContext}`,
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                 <span style={{ fontSize: '12px', letterSpacing: '.1em', color: '#8B5CF6', fontWeight: 700 }}>MERGED</span>
                 {merge.mergedBy?.avatar && <img src={merge.mergedBy.avatar} style={{ width: '20px', height: '20px', borderRadius: '50%' }} />}
-                <span style={{ fontSize: '11px', color: '#B3B3B3' }}>by @{merge.mergedBy?.login}</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>by @{merge.mergedBy?.login}</span>
               </div>
-              <div style={{ fontSize: '10px', color: '#5A5A5A' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
                 {merge.branch} → {merge.baseBranch} · {fmtDate(merge.mergedAt)}
               </div>
-              <div style={{ fontSize: '10px', color: '#5A5A5A', marginTop: '4px' }}>
-                {merge.commits} commits · <span style={{ color: '#2ECC71' }}>+{merge.additions}</span> <span style={{ color: '#FF2A2A' }}>-{merge.deletions}</span>
+              <div style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '4px' }}>
+                {merge.commits} commits · <span style={{ color: 'var(--success)' }}>+{merge.additions}</span> <span style={{ color: 'var(--accent)' }}>-{merge.deletions}</span>
               </div>
             </div>
           ) : (
             <div style={{ padding: '16px', background: '#F39C1210', border: '1px solid #F39C1233' }}>
-              <div style={{ fontSize: '12px', letterSpacing: '.1em', color: '#F39C12', fontWeight: 700 }}>NOT MERGED</div>
-              <div style={{ fontSize: '10px', color: '#5A5A5A', marginTop: '4px' }}>Pull request is still open. Merge to complete this story.</div>
+              <div style={{ fontSize: '12px', letterSpacing: '.1em', color: 'var(--warning)', fontWeight: 700 }}>NOT MERGED</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '4px' }}>Pull request is still open. Merge to complete this story.</div>
             </div>
           )}
         </div>
@@ -1855,13 +1869,13 @@ ${storyContext}`,
             <div className="ds-label" style={{ marginBottom: '12px' }}>DEPLOYMENTS</div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {shipData.deployments.map((d: any) => {
-                const colors: Record<string, string> = { success: '#2ECC71', active: '#2ECC71', failure: '#FF2A2A', error: '#FF2A2A', pending: '#F39C12', inactive: '#5A5A5A', in_progress: '#F39C12' };
-                const c = colors[d.status] || '#5A5A5A';
+                const colors: Record<string, string> = { success: 'var(--success)', active: 'var(--success)', failure: 'var(--accent)', error: 'var(--accent)', pending: 'var(--warning)', inactive: 'var(--text-faint)', in_progress: 'var(--warning)' };
+                const c = colors[d.status] || 'var(--text-faint)';
                 return (
-                  <div key={d.id} style={{ padding: '14px 18px', background: '#0A0A0A', border: '1px solid #1A1A1A', minWidth: '180px' }}>
-                    <div style={{ fontSize: '11px', color: '#FFFFFF', fontWeight: 600, marginBottom: '6px' }}>{d.environment.toUpperCase()}</div>
+                  <div key={d.id} style={{ padding: '14px 18px', background: 'var(--bg-primary)', border: '1px solid #1A1A1A', minWidth: '180px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-primary)', fontWeight: 600, marginBottom: '6px' }}>{d.environment.toUpperCase()}</div>
                     <div style={{ fontSize: '9px', letterSpacing: '.08em', color: c, marginBottom: '4px' }}>{d.status.toUpperCase()}</div>
-                    <div style={{ fontSize: '10px', color: '#5A5A5A' }}>{fmtDate(d.createdAt)}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-faint)' }}>{fmtDate(d.createdAt)}</div>
                   </div>
                 );
               })}
@@ -1892,7 +1906,7 @@ ${storyContext}`,
               <TimelineEntry icon="○" color="#3A3A3A" label="PR merge — pending" date="" />
             )}
             {shipData?.deployments?.map((d: any) => (
-              <TimelineEntry key={d.id} icon="●" color={d.status === 'success' || d.status === 'active' ? '#2ECC71' : '#F39C12'} label={`Deployed to ${d.environment}`} date={fmtDate(d.createdAt)} />
+              <TimelineEntry key={d.id} icon="●" color={d.status === 'success' || d.status === 'active' ? 'var(--success)' : 'var(--warning)'} label={`Deployed to ${d.environment}`} date={fmtDate(d.createdAt)} />
             ))}
           </div>
         </div>
@@ -1903,8 +1917,8 @@ ${storyContext}`,
   const TimelineEntry = ({ icon, color, label, date }: { icon: string; color: string; label: string; date: string }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', marginLeft: '-22px' }}>
       <span style={{ fontSize: '10px', color, width: '16px', textAlign: 'center' }}>{icon}</span>
-      <span style={{ fontSize: '11px', color: '#B3B3B3', flex: 1 }}>{label}</span>
-      {date && <span style={{ fontSize: '10px', color: '#5A5A5A' }}>{date}</span>}
+      <span style={{ fontSize: '11px', color: 'var(--text-secondary)', flex: 1 }}>{label}</span>
+      {date && <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>{date}</span>}
     </div>
   );
 
@@ -1927,21 +1941,21 @@ ${storyContext}`,
     <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Breadcrumb + Header */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#5A5A5A', marginBottom: '12px' }}>
-          <span style={{ cursor: 'pointer', borderBottom: '1px solid #2A2A2A' }} onClick={() => router.push(`/projects/${project.id}/features`)}>Features</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-faint)', marginBottom: '12px' }}>
+          <span style={{ cursor: 'pointer', borderBottom: '1px solid var(--border-input)' }} onClick={() => router.push(`/projects/${project.id}/features`)}>Features</span>
           <span>›</span>
-          <span style={{ color: '#7A7A7A' }}>{story.feature.title}</span>
+          <span style={{ color: 'var(--text-muted)' }}>{story.feature.title}</span>
           <span>›</span>
-          <span style={{ color: '#B3B3B3' }}>User Story</span>
+          <span style={{ color: 'var(--text-secondary)' }}>User Story</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ fontSize: '16px', color: '#FFFFFF', fontWeight: 700 }}>
-            As a <span style={{ color: '#FF2A2A' }}>{story.persona}</span>, I want to {story.action}
+          <div style={{ fontSize: '16px', color: 'var(--text-primary)', fontWeight: 700 }}>
+            As a <span style={{ color: 'var(--accent)' }}>{story.persona}</span>, I want to {story.action}
           </div>
-          <span style={{ padding: '2px 10px', fontSize: '10px', letterSpacing: '.1em', border: `1px solid ${STATUS_COLORS[story.status] || '#6A6A6A'}`, color: STATUS_COLORS[story.status] || '#6A6A6A' }}>
+          <span style={{ padding: '2px 10px', fontSize: '10px', letterSpacing: '.1em', border: `1px solid ${STATUS_COLORS[story.status] || 'var(--text-dim)'}`, color: STATUS_COLORS[story.status] || 'var(--text-dim)' }}>
             {story.status.toUpperCase()}
           </span>
-          <span style={{ padding: '2px 10px', fontSize: '10px', letterSpacing: '.1em', border: `1px solid ${COMPLEXITY_COLORS[story.complexity] || '#6A6A6A'}`, color: COMPLEXITY_COLORS[story.complexity] || '#6A6A6A' }}>
+          <span style={{ padding: '2px 10px', fontSize: '10px', letterSpacing: '.1em', border: `1px solid ${COMPLEXITY_COLORS[story.complexity] || 'var(--text-dim)'}`, color: COMPLEXITY_COLORS[story.complexity] || 'var(--text-dim)' }}>
             {story.complexity.toUpperCase()}
           </span>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1954,12 +1968,12 @@ ${storyContext}`,
                   fontSize: '10px', letterSpacing: '.1em', textDecoration: 'none',
                   padding: '4px 12px', display: 'flex', alignItems: 'center', gap: '6px',
                   border: `1px solid ${issueResult.state === 'closed' ? '#5A5A5A44' : '#2ECC7144'}`,
-                  color: issueResult.state === 'closed' ? '#5A5A5A' : '#2ECC71',
+                  color: issueResult.state === 'closed' ? 'var(--text-faint)' : 'var(--success)',
                 }}
               >
                 <span style={{
                   display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
-                  background: issueResult.state === 'closed' ? '#8E44AD' : '#2ECC71',
+                  background: issueResult.state === 'closed' ? 'var(--text-muted)' : 'var(--success)',
                 }} />
                 ISSUE #{issueResult.number} · {(issueResult.state || 'open').toUpperCase()}
               </a>
@@ -2026,19 +2040,19 @@ ${storyContext}`,
         </div>
         {/* Save indicator */}
         {(saving || saved) && (
-          <div style={{ marginTop: '8px', fontSize: '10px', letterSpacing: '.1em', color: saving ? '#F39C12' : '#2ECC71' }}>
+          <div style={{ marginTop: '8px', fontSize: '10px', letterSpacing: '.1em', color: saving ? 'var(--warning)' : 'var(--success)' }}>
             {saving ? '● SAVING...' : '● SAVED'}
           </div>
         )}
         {issueResult?.error && (
-          <div style={{ marginTop: '8px', fontSize: '10px', letterSpacing: '.1em', color: '#FF2A2A' }}>
+          <div style={{ marginTop: '8px', fontSize: '10px', letterSpacing: '.1em', color: 'var(--accent)' }}>
             ✕ {issueResult.error}
           </div>
         )}
       </div>
 
       {/* Tab Pipeline */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #1F1F1F', overflowX: 'auto', scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-default)', overflowX: 'auto', scrollbarWidth: 'none' }}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
           return (
@@ -2051,8 +2065,8 @@ ${storyContext}`,
                 padding: '14px 0',
                 background: 'transparent',
                 border: 'none',
-                borderBottom: `2px solid ${isActive ? '#FF2A2A' : 'transparent'}`,
-                color: isActive ? '#FF2A2A' : '#5A5A5A',
+                borderBottom: `2px solid ${isActive ? 'var(--accent)' : 'transparent'}`,
+                color: isActive ? 'var(--accent)' : 'var(--text-faint)',
                 fontSize: '10px',
                 letterSpacing: '.12em',
                 cursor: 'pointer',
@@ -2064,7 +2078,7 @@ ${storyContext}`,
                 whiteSpace: 'nowrap',
               }}
             >
-              <span style={{ fontSize: '9px', color: isActive ? '#FF2A2A' : '#3A3A3A', fontFamily: '"JetBrains Mono", monospace' }}>{tab.num}</span>
+              <span style={{ fontSize: '9px', color: isActive ? 'var(--accent)' : 'var(--border-strong)', fontFamily: '"JetBrains Mono", monospace' }}>{tab.num}</span>
               {tab.label}
             </button>
           );
@@ -2079,4 +2093,4 @@ ${storyContext}`,
   );
 }
 
-const labelStyle: React.CSSProperties = { fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', marginBottom: '4px' };
+const labelStyle: React.CSSProperties = { fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.12em', marginBottom: '4px' };

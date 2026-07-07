@@ -25,34 +25,34 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       const mermaid = (await import('mermaid')).default;
       mermaid.initialize({
         startOnLoad: false,
-        theme: 'dark',
+        theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'default' : 'dark',
         themeVariables: {
-          primaryColor: '#FF2A2A',
-          primaryTextColor: '#E8E8E8',
-          primaryBorderColor: '#FF2A2A',
-          lineColor: '#5A5A5A',
-          secondaryColor: '#1A1A1A',
-          tertiaryColor: '#0D0D0D',
-          background: '#0A0A0A',
-          mainBkg: '#141414',
-          nodeBorder: '#FF2A2A',
-          clusterBkg: '#0D0D0D',
-          clusterBorder: '#2A2A2A',
-          titleColor: '#FF2A2A',
-          edgeLabelBackground: '#0A0A0A',
-          nodeTextColor: '#E8E8E8',
-          actorTextColor: '#E8E8E8',
-          actorBorder: '#FF2A2A',
-          actorBkg: '#141414',
-          activationBorderColor: '#FF2A2A',
-          signalColor: '#B3B3B3',
-          signalTextColor: '#E8E8E8',
-          labelBoxBkgColor: '#141414',
-          labelBoxBorderColor: '#2A2A2A',
-          labelTextColor: '#E8E8E8',
-          noteBkgColor: '#1A1A1A',
-          noteTextColor: '#B3B3B3',
-          noteBorderColor: '#2A2A2A',
+          primaryColor: 'var(--accent)',
+          primaryTextColor: 'var(--text-secondary)',
+          primaryBorderColor: 'var(--accent)',
+          lineColor: 'var(--text-faint)',
+          secondaryColor: 'var(--bg-hover)',
+          tertiaryColor: 'var(--bg-elevated)',
+          background: 'var(--bg-primary)',
+          mainBkg: 'var(--bg-hover)',
+          nodeBorder: 'var(--accent)',
+          clusterBkg: 'var(--bg-elevated)',
+          clusterBorder: 'var(--border-input)',
+          titleColor: 'var(--accent)',
+          edgeLabelBackground: 'var(--bg-primary)',
+          nodeTextColor: 'var(--text-secondary)',
+          actorTextColor: 'var(--text-secondary)',
+          actorBorder: 'var(--accent)',
+          actorBkg: 'var(--bg-hover)',
+          activationBorderColor: 'var(--accent)',
+          signalColor: 'var(--text-secondary)',
+          signalTextColor: 'var(--text-secondary)',
+          labelBoxBkgColor: 'var(--bg-hover)',
+          labelBoxBorderColor: 'var(--border-input)',
+          labelTextColor: 'var(--text-secondary)',
+          noteBkgColor: 'var(--bg-hover)',
+          noteTextColor: 'var(--text-secondary)',
+          noteBorderColor: 'var(--border-input)',
         },
         fontFamily: '"JetBrains Mono", monospace',
         fontSize: 12,
@@ -80,7 +80,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
           };
         } catch (e) {
           // Show the raw code if mermaid can't parse it
-          div.innerHTML = `<pre style="color:#FF2A2A;font-size:10px;padding:12px;background:#1A0808;border:1px solid #FF2A2A33">${code}</pre>`;
+          div.innerHTML = `<pre style="color:var(--error);font-size:10px;padding:12px;background:var(--accent-glow);border:1px solid var(--border-default)">${code}</pre>`;
         }
       }
     } catch {
@@ -129,7 +129,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       <ul key={key++} style={{ margin: '6px 0 10px 0', paddingLeft: '18px', listStyleType: 'none' }}>
         {listItems.map((item, i) => (
           <li key={i} style={{ position: 'relative', paddingLeft: `${14 + item.indent * 16}px`, marginBottom: '3px' }}>
-            <span style={{ position: 'absolute', left: item.indent * 16, color: '#FF2A2A' }}>›</span>
+            <span style={{ position: 'absolute', left: item.indent * 16, color: 'var(--accent)' }}>›</span>
             {renderInline(item.text)}
           </li>
         ))}
@@ -146,12 +146,12 @@ export default function MarkdownRenderer({ content, className }: { content: stri
     const headerRow = dataRows[0];
     const bodyRows = dataRows.slice(1);
     elements.push(
-      <div key={key++} style={{ overflowX: 'auto', margin: '12px 0', border: '1px solid #1F1F1F' }}>
+      <div key={key++} style={{ overflowX: 'auto', margin: '12px 0', border: '1px solid var(--border-default)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10.5px' }}>
           <thead>
-            <tr style={{ background: '#141414' }}>
+            <tr style={{ background: 'var(--bg-hover)' }}>
               {headerRow.map((cell, i) => (
-                <th key={i} style={{ padding: '8px 12px', textAlign: 'left', color: '#FF2A2A', fontWeight: 600, letterSpacing: '.06em', borderBottom: '2px solid #FF2A2A33', whiteSpace: 'nowrap' }}>
+                <th key={i} style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--accent)', fontWeight: 600, letterSpacing: '.06em', borderBottom: '2px solid var(--border-strong)', whiteSpace: 'nowrap' }}>
                   {renderInline(cell.trim())}
                 </th>
               ))}
@@ -159,9 +159,9 @@ export default function MarkdownRenderer({ content, className }: { content: stri
           </thead>
           <tbody>
             {bodyRows.map((row, ri) => (
-              <tr key={ri} style={{ borderBottom: '1px solid #1A1A1A', background: ri % 2 === 0 ? 'transparent' : '#0A0A0A08' }}>
+              <tr key={ri} style={{ borderBottom: '1px solid var(--border-default)', background: ri % 2 === 0 ? 'transparent' : 'var(--bg-hover)' }}>
                 {row.map((cell, ci) => (
-                  <td key={ci} style={{ padding: '6px 12px', color: '#B3B3B3' }}>
+                  <td key={ci} style={{ padding: '6px 12px', color: 'var(--text-secondary)' }}>
                     {renderInline(cell.trim())}
                   </td>
                 ))}
@@ -212,21 +212,21 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       if (firstMatch.type === 'code') {
         parts.push(
           <code key={partKey++} style={{
-            background: '#1A1A1A', padding: '1px 5px', fontSize: '10.5px',
-            color: '#E8E8E8', border: '1px solid #2A2A2A',
+            background: 'var(--bg-hover)', padding: '1px 5px', fontSize: '10.5px',
+            color: 'var(--text-secondary)', border: '1px solid var(--border-input)',
           }}>
             {firstMatch.content}
           </code>
         );
       } else if (firstMatch.type === 'bold') {
         parts.push(
-          <strong key={partKey++} style={{ color: '#FFFFFF', fontWeight: 600 }}>
+          <strong key={partKey++} style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
             {firstMatch.content}
           </strong>
         );
       } else if (firstMatch.type === 'link') {
         parts.push(
-          <a key={partKey++} href={firstMatch.href} target="_blank" rel="noopener noreferrer" style={{ color: '#FF2A2A', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+          <a key={partKey++} href={firstMatch.href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
             {firstMatch.content}
           </a>
         );
@@ -254,12 +254,12 @@ export default function MarkdownRenderer({ content, className }: { content: stri
           flushList();
           elements.push(
             <div key={key++} style={{
-              margin: '16px 0', padding: '24px', background: '#0A0A0A',
-              border: '1px solid #1F1F1F', overflow: 'auto',
+              margin: '16px 0', padding: '24px', background: 'var(--bg-primary)',
+              border: '1px solid var(--border-default)', overflow: 'auto',
               display: 'flex', justifyContent: 'center',
             }}>
               <div className="mermaid-source" data-mermaid={codeContent} style={{ minWidth: '200px' }}>
-                <div style={{ textAlign: 'center', fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em' }}>LOADING DIAGRAM...</div>
+                <div style={{ textAlign: 'center', fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.1em' }}>LOADING DIAGRAM...</div>
               </div>
             </div>
           );
@@ -271,17 +271,17 @@ export default function MarkdownRenderer({ content, className }: { content: stri
               {lang && (
                 <div style={{
                   position: 'absolute', top: 0, right: 0,
-                  padding: '2px 8px', fontSize: '9px', color: '#5A5A5A',
-                  letterSpacing: '.1em', background: '#141414', borderLeft: '1px solid #1F1F1F',
-                  borderBottom: '1px solid #1F1F1F',
+                  padding: '2px 8px', fontSize: '9px', color: 'var(--text-faint)',
+                  letterSpacing: '.1em', background: 'var(--bg-hover)', borderLeft: '1px solid var(--border-default)',
+                  borderBottom: '1px solid var(--border-default)',
                 }}>
                   {lang.toUpperCase()}
                 </div>
               )}
               <pre style={{
-                background: '#0D0D0D', border: '1px solid #1F1F1F',
+                background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
                 padding: '14px 16px', overflow: 'auto', fontSize: '10.5px',
-                lineHeight: 1.6, color: '#C8C8C8',
+                lineHeight: 1.6, color: 'var(--text-secondary)',
               }}>
                 {codeContent}
               </pre>
@@ -327,8 +327,8 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       flushList();
       elements.push(
         <div key={key++} style={{
-          borderLeft: '3px solid #FF2A2A', paddingLeft: '14px', margin: '8px 0',
-          color: '#9A9A9A', fontStyle: 'italic',
+          borderLeft: '3px solid var(--accent)', paddingLeft: '14px', margin: '8px 0',
+          color: 'var(--text-muted)', fontStyle: 'italic',
         }}>
           {renderInline(trimmed.replace(/^>\s+/, ''))}
         </div>
@@ -341,9 +341,9 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       flushList();
       elements.push(
         <div key={key++} style={{
-          fontSize: '16px', fontWeight: 700, color: '#FFFFFF',
+          fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)',
           letterSpacing: '.08em', marginTop: '24px', marginBottom: '10px',
-          borderBottom: '2px solid #FF2A2A33', paddingBottom: '10px',
+          borderBottom: '2px solid var(--border-default)', paddingBottom: '10px',
         }}>
           {renderInline(trimmed.replace(/^#\s+/, ''))}
         </div>
@@ -356,7 +356,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       flushList();
       elements.push(
         <div key={key++} style={{
-          fontSize: '13px', fontWeight: 700, color: '#FF2A2A',
+          fontSize: '13px', fontWeight: 700, color: 'var(--accent)',
           letterSpacing: '.1em', marginTop: '22px', marginBottom: '8px',
           textTransform: 'uppercase',
         }}>
@@ -371,7 +371,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       flushList();
       elements.push(
         <div key={key++} style={{
-          fontSize: '12px', fontWeight: 700, color: '#E0E0E0',
+          fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)',
           letterSpacing: '.06em', marginTop: '16px', marginBottom: '6px',
         }}>
           {renderInline(trimmed.replace(/^###\s+/, ''))}
@@ -385,7 +385,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       flushList();
       elements.push(
         <div key={key++} style={{
-          fontSize: '11px', fontWeight: 600, color: '#B3B3B3',
+          fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)',
           marginTop: '12px', marginBottom: '4px',
         }}>
           {renderInline(trimmed.replace(/^#+\s+/, ''))}
@@ -398,7 +398,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
     if (/^[-*_]{3,}$/.test(trimmed)) {
       flushList();
       elements.push(
-        <hr key={key++} style={{ border: 'none', borderTop: '1px solid #2A2A2A', margin: '16px 0' }} />
+        <hr key={key++} style={{ border: 'none', borderTop: '1px solid var(--border-input)', margin: '16px 0' }} />
       );
       continue;
     }
@@ -417,7 +417,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       flushList();
       elements.push(
         <div key={key++} style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
-          <span style={{ color: '#FF2A2A', fontWeight: 700, minWidth: '18px', flexShrink: 0 }}>{num}.</span>
+          <span style={{ color: 'var(--accent)', fontWeight: 700, minWidth: '18px', flexShrink: 0 }}>{num}.</span>
           <span>{renderInline(content)}</span>
         </div>
       );
@@ -438,7 +438,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
 
   return (
     <div ref={containerRef} className={className} style={{
-      fontSize: '11.5px', color: '#B3B3B3', lineHeight: 1.7,
+      fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.7,
       fontFamily: '"JetBrains Mono", monospace',
     }}>
       {elements}
@@ -459,39 +459,39 @@ export default function MarkdownRenderer({ content, className }: { content: stri
           {/* Header Controls */}
           <div style={{
             padding: '16px 24px', display: 'flex', justifyContent: 'space-between',
-            alignItems: 'center', borderBottom: '1px solid #1F1F1F',
-            background: '#0D0D0D', zIndex: 10001,
+            alignItems: 'center', borderBottom: '1px solid var(--border-default)',
+            background: 'var(--bg-elevated)', zIndex: 10001,
           }}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <span style={{ color: '#FF2A2A', fontWeight: 700, letterSpacing: '.1em', fontSize: '12px' }}>INTERACTIVE DIAGRAM VIEW</span>
-              <div style={{ height: '12px', width: '1px', background: '#2A2A2A' }} />
+              <span style={{ color: 'var(--accent)', fontWeight: 700, letterSpacing: '.1em', fontSize: '12px' }}>INTERACTIVE DIAGRAM VIEW</span>
+              <div style={{ height: '12px', width: '1px', background: 'var(--border-input)' }} />
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button 
                   onClick={() => setZoom(prev => prev * 1.2)}
-                  style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#E8E8E8', padding: '4px 10px', fontSize: '10px', cursor: 'pointer' }}
+                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-input)', color: 'var(--text-secondary)', padding: '4px 10px', fontSize: '10px', cursor: 'pointer' }}
                 >
                   ZOOM +
                 </button>
                 <button 
                   onClick={() => setZoom(prev => prev * 0.8)}
-                  style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#E8E8E8', padding: '4px 10px', fontSize: '10px', cursor: 'pointer' }}
+                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-input)', color: 'var(--text-secondary)', padding: '4px 10px', fontSize: '10px', cursor: 'pointer' }}
                 >
                   ZOOM -
                 </button>
                 <button 
                   onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}
-                  style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#E8E8E8', padding: '4px 10px', fontSize: '10px', cursor: 'pointer' }}
+                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-input)', color: 'var(--text-secondary)', padding: '4px 10px', fontSize: '10px', cursor: 'pointer' }}
                 >
                   RESET VIEW
                 </button>
               </div>
-              <div style={{ fontSize: '10px', color: '#5A5A5A', marginLeft: '8px' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-faint)', marginLeft: '8px' }}>
                 SCROLL TO ZOOM • DRAG TO PAN
               </div>
             </div>
             <button 
               onClick={() => setFullscreenDiagram(null)}
-              style={{ background: '#FF2A2A', border: 'none', color: '#FFFFFF', padding: '6px 16px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', letterSpacing: '.05em' }}
+              style={{ background: 'var(--accent)', border: 'none', color: '#FFFFFF', padding: '6px 16px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', letterSpacing: '.05em' }}
             >
               [ CLOSE ]
             </button>

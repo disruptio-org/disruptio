@@ -53,7 +53,7 @@ export default function CreateProjectPage() {
       </div>
       <div style={{ flex: 1, padding: '36px 28px', maxWidth: '720px', width: '100%', margin: '0 auto' }} className="ds-page-enter">
         <div className="ds-section-title">CREATE PROJECT</div>
-        <div style={{ marginTop: '8px', fontSize: '12px', color: '#6A6A6A', lineHeight: 1.6 }}>
+        <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-dim)', lineHeight: 1.6 }}>
           Define your project context. All fields feed into agent intelligence compilation.
         </div>
         <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -67,7 +67,7 @@ export default function CreateProjectPage() {
               )}
             </label>
           ))}
-          {error && <div style={{ color: '#FF2A2A', fontSize: '12px' }}>{error}</div>}
+          {error && <div style={{ color: 'var(--accent)', fontSize: '12px' }}>{error}</div>}
           <div className="ds-form-row">
             <button className="ds-btn-primary" onClick={handleSubmit} disabled={saving}>
               {saving ? 'CREATING...' : 'CREATE PROJECT'}

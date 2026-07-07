@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import AuthProvider from '@/components/auth/AuthProvider';
+import { ThemeProvider } from '@/components/theme/ThemeProvider';
+import { themeInitScript } from '@/lib/theme';
 
 export const metadata: Metadata = {
   title: 'disruptio — AI-Driven Product Delivery',
@@ -13,9 +15,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

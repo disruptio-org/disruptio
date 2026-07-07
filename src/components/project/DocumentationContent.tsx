@@ -117,7 +117,7 @@ export default function DocumentationContent({ project }: DocumentationContentPr
   if (loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <div style={{ fontSize: '10px', letterSpacing: '.15em', color: '#5A5A5A' }}>LOADING DOCUMENTATION...</div>
+        <div style={{ fontSize: '10px', letterSpacing: '.15em', color: 'var(--text-faint)' }}>LOADING DOCUMENTATION...</div>
       </div>
     );
   }
@@ -136,12 +136,12 @@ export default function DocumentationContent({ project }: DocumentationContentPr
           >
             ← BACK TO DOCUMENTATION
           </button>
-          <span style={{ fontSize: '10px', color: '#3A3A3A' }}>|</span>
-          <span style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.08em' }}>
+          <span style={{ fontSize: '10px', color: 'var(--border-strong)' }}>|</span>
+          <span style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.08em' }}>
             v{selectedDoc.version} — {new Date(selectedDoc.updatedAt).toLocaleDateString()}
           </span>
           {meta?.model && (
-            <span style={{ fontSize: '9px', color: '#3A3A3A', fontFamily: '"JetBrains Mono", monospace' }}>
+            <span style={{ fontSize: '9px', color: 'var(--border-strong)', fontFamily: '"JetBrains Mono", monospace' }}>
               {meta.model}
             </span>
           )}
@@ -168,8 +168,8 @@ export default function DocumentationContent({ project }: DocumentationContentPr
       {/* Header with Generate All */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h2 style={{ fontSize: '14px', letterSpacing: '.15em', color: '#FFFFFF', fontWeight: 700, margin: 0 }}>DOCUMENTATION</h2>
-          <p style={{ fontSize: '11px', color: '#5A5A5A', marginTop: '6px', lineHeight: 1.6 }}>
+          <h2 style={{ fontSize: '14px', letterSpacing: '.15em', color: 'var(--text-primary)', fontWeight: 700, margin: 0 }}>DOCUMENTATION</h2>
+          <p style={{ fontSize: '11px', color: 'var(--text-faint)', marginTop: '6px', lineHeight: 1.6 }}>
             Generate comprehensive product documentation using AI. Select an agent to shape the output.
           </p>
         </div>
@@ -186,9 +186,9 @@ export default function DocumentationContent({ project }: DocumentationContentPr
       {/* Agent selector */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '16px',
-        padding: '14px 20px', background: '#0D0D0D', border: '1px solid #1F1F1F',
+        padding: '14px 20px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
       }}>
-        <div style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.12em', whiteSpace: 'nowrap' }}>AI AGENT</div>
+        <div style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.12em', whiteSpace: 'nowrap' }}>AI AGENT</div>
         <select
           className="ds-input"
           style={{ width: '300px' }}
@@ -200,7 +200,7 @@ export default function DocumentationContent({ project }: DocumentationContentPr
             <option key={a.id} value={a.id}>{a.name}</option>
           ))}
         </select>
-        <span style={{ fontSize: '10px', color: '#3A3A3A' }}>
+        <span style={{ fontSize: '10px', color: 'var(--border-strong)' }}>
           Agent context will shape the generated documentation
         </span>
       </div>
@@ -208,26 +208,26 @@ export default function DocumentationContent({ project }: DocumentationContentPr
       {/* Generate All Progress */}
       {generatingAllProgress && (
         <div style={{
-          padding: '12px 20px', background: '#0D0D0D', border: '1px solid #FF2A2A33',
+          padding: '12px 20px', background: 'var(--bg-elevated)', border: '1px solid #FF2A2A33',
           display: 'flex', alignItems: 'center', gap: '16px',
         }}>
           <div className="ds-spinner" style={{
-            width: '14px', height: '14px', border: '2px solid #FF2A2A33',
-            borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'spin 1s linear infinite',
+            width: '14px', height: '14px', border: '2px solid var(--accent)33',
+            borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite',
             flexShrink: 0,
           }} />
-          <span style={{ fontSize: '11px', color: '#FF2A2A', letterSpacing: '.08em' }}>
+          <span style={{ fontSize: '11px', color: 'var(--accent)', letterSpacing: '.08em' }}>
             GENERATING {generatingAllProgress.current}/{generatingAllProgress.total}
           </span>
-          <span style={{ fontSize: '10px', color: '#5A5A5A' }}>
+          <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
             {generatingAllProgress.currentType}
           </span>
           {/* Progress bar */}
-          <div style={{ flex: 1, height: '3px', background: '#1A1A1A', position: 'relative' }}>
+          <div style={{ flex: 1, height: '3px', background: 'var(--bg-hover)', position: 'relative' }}>
             <div style={{
               position: 'absolute', left: 0, top: 0, height: '100%',
               width: `${(generatingAllProgress.current / generatingAllProgress.total) * 100}%`,
-              background: '#FF2A2A', transition: 'width 0.5s ease',
+              background: 'var(--accent)', transition: 'width 0.5s ease',
             }} />
           </div>
         </div>
@@ -235,7 +235,7 @@ export default function DocumentationContent({ project }: DocumentationContentPr
 
       {/* Error */}
       {error && (
-        <div style={{ padding: '10px 16px', background: '#1A0808', border: '1px solid #FF2A2A33', fontSize: '11px', color: '#FF2A2A' }}>
+        <div style={{ padding: '10px 16px', background: '#1A0808', border: '1px solid #FF2A2A33', fontSize: '11px', color: 'var(--accent)' }}>
           {error}
         </div>
       )}
@@ -251,19 +251,19 @@ export default function DocumentationContent({ project }: DocumentationContentPr
               key={dt.id}
               style={{
                 display: 'flex', alignItems: 'center', gap: '16px',
-                padding: '14px 20px', background: '#0D0D0D', border: '1px solid #1F1F1F',
+                padding: '14px 20px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
                 cursor: existingDoc && !isGenerating ? 'pointer' : 'default',
                 transition: 'border-color .15s ease, background .15s ease',
                 position: 'relative', overflow: 'hidden',
               }}
               onClick={() => existingDoc && !isGenerating && setSelectedDoc(existingDoc)}
-              onMouseEnter={(e) => { if (existingDoc) e.currentTarget.style.borderColor = '#2A2A2A'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1F1F1F'; }}
+              onMouseEnter={(e) => { if (existingDoc) e.currentTarget.style.borderColor = 'var(--border-input)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
             >
               {/* Status indicator */}
               {existingDoc ? (
                 <span style={{
-                  fontSize: '9px', color: '#2ECC71', letterSpacing: '.1em',
+                  fontSize: '9px', color: 'var(--success)', letterSpacing: '.1em',
                   border: '1px solid #2ECC7133', padding: '2px 10px',
                   whiteSpace: 'nowrap',
                 }}>
@@ -271,8 +271,8 @@ export default function DocumentationContent({ project }: DocumentationContentPr
                 </span>
               ) : (
                 <span style={{
-                  fontSize: '9px', color: '#3A3A3A', letterSpacing: '.1em',
-                  border: '1px solid #1F1F1F', padding: '2px 10px',
+                  fontSize: '9px', color: 'var(--border-strong)', letterSpacing: '.1em',
+                  border: '1px solid var(--border-default)', padding: '2px 10px',
                   whiteSpace: 'nowrap',
                 }}>
                   PENDING
@@ -281,7 +281,7 @@ export default function DocumentationContent({ project }: DocumentationContentPr
 
               {/* Doc type name */}
               <span style={{
-                fontSize: '12px', color: existingDoc ? '#FFFFFF' : '#5A5A5A',
+                fontSize: '12px', color: existingDoc ? 'var(--text-primary)' : 'var(--text-faint)',
                 fontWeight: 600, letterSpacing: '.04em', flex: 1,
               }}>
                 {dt.label}
@@ -289,7 +289,7 @@ export default function DocumentationContent({ project }: DocumentationContentPr
 
               {/* Last updated */}
               {existingDoc && (
-                <span style={{ fontSize: '9px', color: '#3A3A3A', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '9px', color: 'var(--border-strong)', whiteSpace: 'nowrap' }}>
                   {new Date(existingDoc.updatedAt).toLocaleDateString()} {new Date(existingDoc.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               )}
@@ -299,13 +299,13 @@ export default function DocumentationContent({ project }: DocumentationContentPr
                 {deleteConfirm === existingDoc?.id ? (
                   <>
                     <button
-                      style={{ fontSize: '9px', color: '#FF2A2A', border: '1px solid #FF2A2A', background: 'transparent', cursor: 'pointer', padding: '3px 10px', letterSpacing: '.05em' }}
+                      style={{ fontSize: '9px', color: 'var(--accent)', border: '1px solid #FF2A2A', background: 'transparent', cursor: 'pointer', padding: '3px 10px', letterSpacing: '.05em' }}
                       onClick={() => existingDoc && deleteDoc(existingDoc.id)}
                     >
                       CONFIRM
                     </button>
                     <button
-                      style={{ fontSize: '9px', color: '#5A5A5A', border: '1px solid #2A2A2A', background: 'transparent', cursor: 'pointer', padding: '3px 10px', letterSpacing: '.05em' }}
+                      style={{ fontSize: '9px', color: 'var(--text-faint)', border: '1px solid var(--border-input)', background: 'transparent', cursor: 'pointer', padding: '3px 10px', letterSpacing: '.05em' }}
                       onClick={() => setDeleteConfirm(null)}
                     >
                       CANCEL
@@ -315,7 +315,7 @@ export default function DocumentationContent({ project }: DocumentationContentPr
                   <>
                     {existingDoc && (
                       <button
-                        style={{ fontSize: '9px', color: '#FF2A2A', border: '1px solid #FF2A2A33', background: 'transparent', cursor: 'pointer', padding: '3px 10px', letterSpacing: '.05em' }}
+                        style={{ fontSize: '9px', color: 'var(--accent)', border: '1px solid #FF2A2A33', background: 'transparent', cursor: 'pointer', padding: '3px 10px', letterSpacing: '.05em' }}
                         onClick={() => setDeleteConfirm(existingDoc.id)}
                       >
                         DELETE
@@ -341,10 +341,10 @@ export default function DocumentationContent({ project }: DocumentationContentPr
                   gap: '10px',
                 }}>
                   <div className="ds-spinner" style={{
-                    width: '14px', height: '14px', border: '2px solid #FF2A2A33',
-                    borderTopColor: '#FF2A2A', borderRadius: '50%', animation: 'spin 1s linear infinite',
+                    width: '14px', height: '14px', border: '2px solid var(--accent)33',
+                    borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite',
                   }} />
-                  <span style={{ fontSize: '10px', color: '#FF2A2A', letterSpacing: '.15em' }}>GENERATING...</span>
+                  <span style={{ fontSize: '10px', color: 'var(--accent)', letterSpacing: '.15em' }}>GENERATING...</span>
                 </div>
               )}
             </div>

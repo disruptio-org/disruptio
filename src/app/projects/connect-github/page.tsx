@@ -157,10 +157,10 @@ function ConnectGitHubContent() {
           {step === 'connect' && (
             <div style={{ textAlign: 'center' }}>
               <div className="ds-section-title">CONNECT GITHUB REPOSITORY</div>
-              <div style={{ marginTop: '16px', color: '#8A8A8A', fontSize: '13px', lineHeight: 1.65 }}>
+              <div style={{ marginTop: '16px', color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.65 }}>
                 Authorize disruptio to access your GitHub repositories. Full permissions are requested to enable complete code intelligence and repository management.
               </div>
-              <div style={{ marginTop: '28px', border: '1px solid #1F1F1F', padding: '20px', textAlign: 'left' }}>
+              <div style={{ marginTop: '28px', border: '1px solid var(--border-default)', padding: '20px', textAlign: 'left' }}>
                 <div className="ds-label" style={{ marginBottom: '14px' }}>PERMISSIONS REQUESTED</div>
                 {[
                   { scope: 'repo', desc: 'Full control of repositories' },
@@ -170,17 +170,17 @@ function ConnectGitHubContent() {
                   { scope: 'delete_repo', desc: 'Repository deletion' },
                   { scope: 'read:user', desc: 'User profile data' },
                 ].map(p => (
-                  <div key={p.scope} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #161616' }}>
-                    <span style={{ fontSize: '12px', color: '#2ECC71', fontFamily: 'var(--font-mono)' }}>{p.scope}</span>
-                    <span style={{ fontSize: '11px', color: '#6A6A6A' }}>{p.desc}</span>
+                  <div key={p.scope} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--success)', fontFamily: 'var(--font-mono)' }}>{p.scope}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{p.desc}</span>
                   </div>
                 ))}
               </div>
-              {error && <div style={{ color: '#FF2A2A', fontSize: '12px', marginTop: '16px' }}>{error}</div>}
+              {error && <div style={{ color: 'var(--accent)', fontSize: '12px', marginTop: '16px' }}>{error}</div>}
               <button className="ds-btn-primary" style={{ marginTop: '28px', width: '100%', padding: '15px 0' }} onClick={handleAuthorize}>
                 AUTHORIZE GITHUB ACCESS
               </button>
-              <div style={{ marginTop: '16px', color: '#4A4A4A', fontSize: '11px' }}>
+              <div style={{ marginTop: '16px', color: 'var(--text-ghost)', fontSize: '11px' }}>
                 You will be redirected to GitHub to grant access
               </div>
             </div>
@@ -193,8 +193,8 @@ function ConnectGitHubContent() {
                 <div>
                   <div className="ds-section-title">SELECT REPOSITORY</div>
                   {ghUser && (
-                    <div style={{ marginTop: '8px', color: '#6A6A6A', fontSize: '12px' }}>
-                      Authenticated as <span style={{ color: '#2ECC71' }}>{ghUser.login}</span> · {repos.length} repositories accessible
+                    <div style={{ marginTop: '8px', color: 'var(--text-dim)', fontSize: '12px' }}>
+                      Authenticated as <span style={{ color: 'var(--success)' }}>{ghUser.login}</span> · {repos.length} repositories accessible
                     </div>
                   )}
                 </div>
@@ -211,14 +211,14 @@ function ConnectGitHubContent() {
                 />
               </div>
               {reposLoading ? (
-                <div style={{ marginTop: '40px', textAlign: 'center', color: '#5A5A5A', fontSize: '12px' }}>
+                <div style={{ marginTop: '40px', textAlign: 'center', color: 'var(--text-faint)', fontSize: '12px' }}>
                   <div style={{ animation: 'dsSpin 1s linear infinite', display: 'inline-block', marginBottom: '12px' }}>⟳</div>
                   <br />LOADING REPOSITORIES...
                 </div>
               ) : (
-                <div style={{ marginTop: '14px', border: '1px solid #1F1F1F', maxHeight: '480px', overflowY: 'auto' }}>
+                <div style={{ marginTop: '14px', border: '1px solid var(--border-default)', maxHeight: '480px', overflowY: 'auto' }}>
                   {filteredRepos.length === 0 ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#4A4A4A', fontSize: '12px' }}>
+                    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-ghost)', fontSize: '12px' }}>
                       No repositories found
                     </div>
                   ) : (
@@ -232,23 +232,23 @@ function ConnectGitHubContent() {
                           gap: '14px',
                           alignItems: 'center',
                           padding: '14px 16px',
-                          borderBottom: '1px solid #161616',
+                          borderBottom: '1px solid var(--border-subtle)',
                           cursor: 'pointer',
                           transition: 'background .15s',
                         }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#111')}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-elevated)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
                         <div style={{ minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '13px' }}>{repo.owner}/</span>
-                            <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '13px' }}>{repo.name}</span>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '13px' }}>{repo.owner}/</span>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '13px' }}>{repo.name}</span>
                             <span className={`ds-badge ${repo.visibility === 'private' ? 'ds-badge-manual' : 'ds-badge-github'}`}>
                               {repo.visibility.toUpperCase()}
                             </span>
                           </div>
                           {repo.description && (
-                            <div style={{ marginTop: '4px', color: '#6A6A6A', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ marginTop: '4px', color: 'var(--text-dim)', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {repo.description}
                             </div>
                           )}
@@ -256,7 +256,7 @@ function ConnectGitHubContent() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {repo.language && <span className="ds-badge">{repo.language}</span>}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#4A4A4A' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-ghost)' }}>
                           {repo.permissions?.admin ? 'admin' : repo.permissions?.push ? 'write' : 'read'}
                         </div>
                       </div>
@@ -264,7 +264,7 @@ function ConnectGitHubContent() {
                   )}
                 </div>
               )}
-              {error && <div style={{ color: '#FF2A2A', fontSize: '12px', marginTop: '12px' }}>{error}</div>}
+              {error && <div style={{ color: 'var(--accent)', fontSize: '12px', marginTop: '12px' }}>{error}</div>}
             </div>
           )}
 
@@ -277,21 +277,21 @@ function ConnectGitHubContent() {
                 {[
                   { label: 'repository', value: selectedRepo.fullName },
                   { label: 'branch', value: selectedRepo.defaultBranch },
-                  { label: 'visibility', value: selectedRepo.visibility, color: selectedRepo.visibility === 'private' ? '#F39C12' : '#2ECC71' },
+                  { label: 'visibility', value: selectedRepo.visibility, color: selectedRepo.visibility === 'private' ? 'var(--warning)' : 'var(--success)' },
                   { label: 'language', value: selectedRepo.language || '—' },
-                  { label: 'access', value: selectedRepo.permissions?.admin ? 'admin (full)' : selectedRepo.permissions?.push ? 'write' : 'read', color: '#2ECC71' },
+                  { label: 'access', value: selectedRepo.permissions?.admin ? 'admin (full)' : selectedRepo.permissions?.push ? 'write' : 'read', color: 'var(--success)' },
                 ].map(item => (
                   <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', marginBottom: '8px' }}>
-                    <span style={{ color: '#6A6A6A' }}>{item.label}</span>
-                    <span style={{ color: item.color || '#FFFFFF' }}>{item.value}</span>
+                    <span style={{ color: 'var(--text-dim)' }}>{item.label}</span>
+                    <span style={{ color: item.color || 'var(--text-primary)' }}>{item.value}</span>
                   </div>
                 ))}
               </div>
 
               {/* Scan results */}
               {scanning && (
-                <div style={{ marginTop: '16px', padding: '20px', border: '1px solid #1F1F1F', textAlign: 'center' }}>
-                  <div style={{ color: '#5A5A5A', fontSize: '12px' }}>
+                <div style={{ marginTop: '16px', padding: '20px', border: '1px solid var(--border-default)', textAlign: 'center' }}>
+                  <div style={{ color: 'var(--text-faint)', fontSize: '12px' }}>
                     <span style={{ animation: 'dsSpin 1s linear infinite', display: 'inline-block', marginRight: '8px' }}>⟳</span>
                     SCANNING REPOSITORY...
                   </div>
@@ -302,19 +302,19 @@ function ConnectGitHubContent() {
                   <div className="ds-label" style={{ marginBottom: '14px' }}>SCAN RESULTS</div>
                   {scanResult.languages && (
                     <div style={{ marginBottom: '10px' }}>
-                      <span style={{ fontSize: '10.5px', color: '#6A6A6A', letterSpacing: '.1em' }}>LANGUAGES </span>
-                      <span style={{ fontSize: '12px', color: '#B3B3B3' }}>{scanResult.languages}</span>
+                      <span style={{ fontSize: '10.5px', color: 'var(--text-dim)', letterSpacing: '.1em' }}>LANGUAGES </span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{scanResult.languages}</span>
                     </div>
                   )}
                   {scanResult.frameworks?.length > 0 && (
                     <div style={{ marginBottom: '10px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       {scanResult.frameworks.map((f: string) => (
-                        <span key={f} className="ds-badge" style={{ color: '#2ECC71' }}>{f}</span>
+                        <span key={f} className="ds-badge" style={{ color: 'var(--success)' }}>{f}</span>
                       ))}
                     </div>
                   )}
                   {scanResult.fileTreeSummary && (
-                    <div style={{ fontSize: '11px', color: '#6A6A6A' }}>{scanResult.fileTreeSummary}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{scanResult.fileTreeSummary}</div>
                   )}
                   {scanResult.metadata && (
                     <div style={{ marginTop: '12px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
@@ -325,8 +325,8 @@ function ConnectGitHubContent() {
                         { label: 'issues', value: scanResult.metadata.openIssues },
                       ].map(m => (
                         <div key={m.label}>
-                          <span style={{ fontSize: '10px', color: '#5A5A5A', letterSpacing: '.1em' }}>{m.label} </span>
-                          <span style={{ fontSize: '12px', color: '#FFFFFF' }}>{m.value}</span>
+                          <span style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '.1em' }}>{m.label} </span>
+                          <span style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{m.value}</span>
                         </div>
                       ))}
                     </div>
@@ -338,7 +338,7 @@ function ConnectGitHubContent() {
                 <span className="ds-label">PROJECT NAME</span>
                 <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)} className="ds-input" />
               </label>
-              {error && <div style={{ color: '#FF2A2A', fontSize: '12px', marginTop: '8px' }}>{error}</div>}
+              {error && <div style={{ color: 'var(--accent)', fontSize: '12px', marginTop: '8px' }}>{error}</div>}
               <div className="ds-form-row" style={{ marginTop: '24px' }}>
                 <button className="ds-btn-primary" onClick={handleCreate} disabled={loading}>
                   {loading ? 'CREATING...' : 'CREATE PROJECT'}
@@ -356,7 +356,7 @@ function ConnectGitHubContent() {
 export default function ConnectGitHubPage() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5A5A5A', fontSize: '12px' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: '12px' }}>
         LOADING...
       </div>
     }>
