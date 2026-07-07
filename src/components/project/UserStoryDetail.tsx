@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -1328,41 +1328,49 @@ ${storyContext}`,
     );
   };
 
-  // --- TAB 8: DEVELOPMENT ---
-  const DevelopmentTab = () => {
-    const [devData, setDevData] = useState<any>(null);
-    const [checkData, setCheckData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+  // --- TAB 8: DEVELOPMENT (state lifted to parent to survive remounts) ---
+  const [devTabData, setDevTabData] = useState<any>(null);
+  const [devTabChecks, setDevTabChecks] = useState<any>(null);
+  const [devTabLoading, setDevTabLoading] = useState(false);
+  const [devTabError, setDevTabError] = useState('');
+  const devTabFetched = useRef(false);
 
-    useEffect(() => {
-      if (!story.githubIssueNumber) { setLoading(false); return; }
-      (async () => {
-        try {
-          const res = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=development`);
-          const data = await res.json();
-          if (res.ok) {
-            setDevData(data);
-            // Sync PR data to story state so Code Review and Ship tabs can use it
-            if (data.pullRequests?.[0]) {
-              const pr = data.pullRequests[0];
-              setStory((prev: any) => ({
-                ...prev,
-                githubPrNumber: pr.number,
-                githubPrState: pr.state,
-                githubPrUrl: pr.url,
-                githubBranch: pr.branch,
-              }));
-              // Also fetch checks
-              const checksRes = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=checks&prNumber=${pr.number}`);
-              const checksJson = await checksRes.json();
-              if (checksRes.ok) setCheckData(checksJson);
-            }
-          } else { setError(data.error); }
-        } catch (e: any) { setError(e.message); }
-        setLoading(false);
-      })();
-    }, [story.id, story.githubIssueNumber]);
+  useEffect(() => {
+    if (activeTab !== 'development') return;
+    if (!story.githubIssueNumber) return;
+    if (devTabFetched.current) return;
+    devTabFetched.current = true;
+    setDevTabLoading(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=development`);
+        const data = await res.json();
+        if (res.ok) {
+          setDevTabData(data);
+          if (data.pullRequests?.[0]) {
+            const pr = data.pullRequests[0];
+            setStory((prev: any) => ({
+              ...prev,
+              githubPrNumber: pr.number,
+              githubPrState: pr.state,
+              githubPrUrl: pr.url,
+              githubBranch: pr.branch,
+            }));
+            const checksRes = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=checks&prNumber=${pr.number}`);
+            const checksJson = await checksRes.json();
+            if (checksRes.ok) setDevTabChecks(checksJson);
+          }
+        } else { setDevTabError(data.error); }
+      } catch (e: any) { setDevTabError(e.message); }
+      setDevTabLoading(false);
+    })();
+  }, [activeTab, story.id, story.githubIssueNumber]);
+
+  const DevelopmentTab = () => {
+    const devData = devTabData;
+    const checkData = devTabChecks;
+    const loading = devTabLoading;
+    const error = devTabError;
 
     if (!story.githubIssueNumber) return (
       <div className="ds-card" style={{ padding: '40px', textAlign: 'center' }}>
