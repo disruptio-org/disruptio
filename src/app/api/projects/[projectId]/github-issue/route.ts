@@ -10,6 +10,7 @@ import { cookies } from 'next/headers';
 // Returns null when unavailable — the mockup HTML is still included in the issue body.
 async function renderMockupToImage(html: string): Promise<Buffer | null> {
   try {
+    // @ts-ignore — puppeteer is optional; not available on Vercel serverless
     const puppeteer = await import('puppeteer');
     const browser = await puppeteer.default.launch({
       headless: true,
