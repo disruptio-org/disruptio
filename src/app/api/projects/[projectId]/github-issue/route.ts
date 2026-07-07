@@ -5,23 +5,29 @@ import prisma from '@/lib/prisma';
 import { createOctokit } from '@/lib/github';
 import { cookies } from 'next/headers';
 
-// Render HTML mockup to a PNG buffer using Puppeteer
-async function renderMockupToImage(html: string): Promise<Buffer> {
-  const puppeteer = await import('puppeteer');
-  const browser = await puppeteer.default.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+// Render HTML mockup to a PNG buffer
+// Note: Puppeteer is not available on Vercel serverless (needs Chromium).
+// Returns null when unavailable — the mockup HTML is still included in the issue body.
+async function renderMockupToImage(html: string): Promise<Buffer | null> {
   try {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 800 });
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 15000 });
-    // Wait a bit for fonts to load
-    await new Promise(r => setTimeout(r, 1000));
-    const screenshot = await page.screenshot({ type: 'png', fullPage: true }) as Buffer;
-    return screenshot;
-  } finally {
-    await browser.close();
+    const puppeteer = await import('puppeteer');
+    const browser = await puppeteer.default.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    try {
+      const page = await browser.newPage();
+      await page.setViewport({ width: 1280, height: 800 });
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      await new Promise(r => setTimeout(r, 1000));
+      const screenshot = await page.screenshot({ type: 'png', fullPage: true }) as Buffer;
+      return screenshot;
+    } finally {
+      await browser.close();
+    }
+  } catch {
+    console.warn('[Mockup] Puppeteer not available — skipping screenshot generation');
+    return null;
   }
 }
 
@@ -157,6 +163,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
         const m = mockupsToUpload[i];
         try {
           const imageBuffer = await renderMockupToImage(m.html);
+          if (!imageBuffer) continue; // Puppeteer unavailable — skip screenshot
           const safeName = (m.title || `screen-${i + 1}`)
             .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50);
           const imagePath = `.github/mockups/${story.id}/${safeName}.png`;
