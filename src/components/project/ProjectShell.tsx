@@ -3,6 +3,8 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { useSession } from 'next-auth/react';
+import { isAdmin } from '@/lib/permissions';
 
 interface ProjectShellProps {
   project: {
@@ -30,6 +32,8 @@ const NAV_ITEMS = [
 export default function ProjectShell({ project, children }: ProjectShellProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { data: session } = useSession();
+  const userRole = session?.user?.role || 'viewer';
 
   const activeTab = NAV_ITEMS.find(n => pathname.endsWith(`/${n.id}`))?.id || 'overview';
 
@@ -52,6 +56,11 @@ export default function ProjectShell({ project, children }: ProjectShellProps) {
           ))}
         </div>
         <ThemeToggle />
+        {isAdmin(userRole) && (
+          <div className="ds-sidebar-item" onClick={() => router.push('/admin/users')} style={{ marginTop: '4px', color: '#8B5CF6', fontSize: '11px' }}>
+            ⚙ Admin
+          </div>
+        )}
         <div className="ds-sidebar-back" onClick={() => router.push('/projects')}>
           ← ALL PROJECTS
         </div>

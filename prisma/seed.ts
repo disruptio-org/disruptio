@@ -8,27 +8,37 @@ async function main() {
 
   const user = await prisma.user.upsert({
     where: { email: 'admin@disruptio.org' },
-    update: {},
+    update: { role: 'superadmin', status: 'active' },
     create: {
       email: 'admin@disruptio.org',
       name: 'Admin',
       passwordHash,
+      role: 'superadmin',
+      status: 'active',
     },
   });
 
-  const workspace = await prisma.workspace.create({
-    data: {
-      name: 'Disruptio Workspace',
-      members: {
-        create: {
-          userId: user.id,
-          role: 'owner',
+  // Check if workspace already exists for this user
+  const existingMembership = await prisma.workspaceMember.findFirst({
+    where: { userId: user.id },
+  });
+
+  if (!existingMembership) {
+    const workspace = await prisma.workspace.create({
+      data: {
+        name: 'Disruptio Workspace',
+        members: {
+          create: {
+            userId: user.id,
+            role: 'owner',
+          },
         },
       },
-    },
-  });
-
-  console.log('Seed completed:', { user: user.email, workspace: workspace.name });
+    });
+    console.log('Seed completed:', { user: user.email, role: user.role, workspace: workspace.name });
+  } else {
+    console.log('Seed completed:', { user: user.email, role: user.role, workspace: 'existing' });
+  }
 }
 
 main()
