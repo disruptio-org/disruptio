@@ -15,7 +15,7 @@ async function renderMockupToImage(html: string): Promise<Buffer> {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
-    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 15000 });
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 15000 });
     // Wait a bit for fonts to load
     await new Promise(r => setTimeout(r, 1000));
     const screenshot = await page.screenshot({ type: 'png', fullPage: true }) as Buffer;

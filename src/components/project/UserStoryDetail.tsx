@@ -107,6 +107,10 @@ export default function UserStoryDetail({ story: initialStory, project }: { stor
     acceptance: `Generate acceptance criteria for this user story. Return ONLY a JSON array of strings, no explanation: ["criterion 1", "criterion 2", ...]. Each should be clear and testable.\n\n${storyContext}`,
     gherkin: `Generate Gherkin (BDD) test scenarios for this user story. Return ONLY a JSON array, no explanation: [{"title": "...", "given": "...", "when": "...", "then": "...", "status": "draft"}]\n\n${storyContext}`,
     techreview: `Perform a technical review of this user story. Return ONLY a JSON object, no explanation: {"notes": "...", "impactAnalysis": "...", "risks": ["risk1", "risk2"], "architectureNotes": "..."}\n\n${storyContext}`,
+    mockups: '',
+    development: '',
+    codereview: '',
+    ship: '',
     planning: `Create an implementation plan with subtasks for this user story. You MUST identify the specific files from the repository that will be modified or created.
 
 Return ONLY a JSON object, no explanation:

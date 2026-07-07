@@ -82,9 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
     if (tech.frontend) contextBlock += `- Frontend: ${tech.frontend}\n`;
     if (tech.backend) contextBlock += `- Backend: ${tech.backend}\n`;
     if (tech.database) contextBlock += `- Database: ${tech.database}\n`;
-    if (tech.hosting) contextBlock += `- Hosting: ${tech.hosting}\n`;
     if (tech.authentication) contextBlock += `- Auth: ${tech.authentication}\n`;
-    if (tech.additionalTools) contextBlock += `- Tools: ${tech.additionalTools}\n`;
   }
 
   // Features
@@ -165,7 +163,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
   if (contextItems.length > 0) {
     contextBlock += `\n## Product Context\n`;
     for (const item of contextItems) {
-      contextBlock += `### ${item.category}\n${item.content}\n\n`;
+      contextBlock += `### ${item.type}\n${item.content}\n\n`;
     }
   }
 
@@ -311,7 +309,7 @@ Generate the complete document in markdown format.`;
       doc = await prisma.projectDocumentation.create({
         data: {
           projectId,
-          title: `${docTypeInfo.emoji} ${docTypeInfo.label}`,
+          title: `${docTypeInfo.label}`,
           content,
           docType,
           agentId: agentId || null,

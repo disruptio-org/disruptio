@@ -117,7 +117,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
   }, [content, renderMermaid]);
 
   const lines = content.split('\n');
-  const elements: JSX.Element[] = [];
+  const elements: React.JSX.Element[] = [];
   let listItems: { text: string; indent: number }[] = [];
   let codeBlock: { lines: string[]; lang: string } | null = null;
   let tableRows: string[][] = [];
@@ -175,7 +175,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
   };
 
   const renderInline = (text: string) => {
-    const parts: (string | JSX.Element)[] = [];
+    const parts: (string | React.JSX.Element)[] = [];
     let remaining = text;
     let partKey = 0;
 

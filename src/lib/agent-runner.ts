@@ -143,7 +143,7 @@ export async function runAgent(
   const completion = await safeCompletion(openai, {
     model,
     messages,
-    temperature: agent.temperature,
+    temperature: agent.temperature ?? undefined,
     max_completion_tokens: 4096,
   });
 
