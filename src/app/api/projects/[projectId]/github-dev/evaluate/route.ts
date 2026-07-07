@@ -120,23 +120,50 @@ ${contextBlock}
 ${diffSummary}`;
 
   try {
-    const completion = await safeCompletion(client, {
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.2,
-      max_completion_tokens: 4000,
-    });
+    // Use direct API call with json_object format to force valid JSON output
+    // gpt-5.5 and similar models need explicit response_format to produce structured output
+    let completion;
+    try {
+      completion = await client.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.2,
+        max_completion_tokens: 16000,
+        response_format: { type: 'json_object' },
+      });
+    } catch (retryErr: any) {
+      // Retry without temperature and response_format if the model doesn't support them
+      console.log('[AI Eval] First attempt failed, retrying without temperature:', retryErr.message);
+      completion = await client.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt + '\n\nIMPORTANT: You MUST respond with valid JSON only. No markdown, no explanation, just the JSON object.' },
+          { role: 'user', content: userPrompt },
+        ],
+        max_completion_tokens: 16000,
+      });
+    }
+
+    console.log('[AI Eval] Completion finish_reason:', completion.choices[0]?.finish_reason);
+    console.log('[AI Eval] Completion usage:', JSON.stringify(completion.usage));
+    console.log('[AI Eval] Completion message role:', completion.choices[0]?.message?.role);
+    console.log('[AI Eval] Completion message refusal:', (completion.choices[0]?.message as any)?.refusal);
+    console.log('[AI Eval] Full message keys:', Object.keys(completion.choices[0]?.message || {}));
+    console.log('[AI Eval] Full message:', JSON.stringify(completion.choices[0]?.message).substring(0, 2000));
 
     const raw = completion.choices[0]?.message?.content || '{}';
+    console.log('[AI Eval] Raw AI response length:', raw.length);
+    console.log('[AI Eval] Raw AI response (first 1000 chars):', raw.substring(0, 1000));
     // Extract JSON from potential markdown code block
     const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, raw];
     let evaluation: any;
     try {
       evaluation = JSON.parse(jsonMatch[1]?.trim() || raw.trim());
     } catch {
+      console.error('[AI Eval] Failed to parse JSON from AI response');
       evaluation = { score: 0, summary: 'Failed to parse AI response', criteriaResults: [], requirementResults: [], risks: [], suggestions: [], rawResponse: raw };
     }
 
@@ -144,6 +171,8 @@ ${diffSummary}`;
     evaluation.evaluatedAt = new Date().toISOString();
     evaluation.model = model;
     evaluation.prNumber = story.githubPrNumber;
+
+    console.log('[AI Eval] Final evaluation score:', evaluation.score, 'keys:', Object.keys(evaluation));
 
     // Save to database
     await prisma.userStory.update({

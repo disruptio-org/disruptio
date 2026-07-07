@@ -25,7 +25,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       const mermaid = (await import('mermaid')).default;
       mermaid.initialize({
         startOnLoad: false,
-        theme: 'dark',
+        theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'default' : 'dark',
         themeVariables: {
           primaryColor: 'var(--accent)',
           primaryTextColor: 'var(--text-secondary)',
@@ -80,7 +80,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
           };
         } catch (e) {
           // Show the raw code if mermaid can't parse it
-          div.innerHTML = `<pre style="color:#FF2A2A;font-size:10px;padding:12px;background:#1A0808;border:1px solid #FF2A2A33">${code}</pre>`;
+          div.innerHTML = `<pre style="color:var(--error);font-size:10px;padding:12px;background:var(--accent-glow);border:1px solid var(--border-default)">${code}</pre>`;
         }
       }
     } catch {
@@ -151,7 +151,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
           <thead>
             <tr style={{ background: 'var(--bg-hover)' }}>
               {headerRow.map((cell, i) => (
-                <th key={i} style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--accent)', fontWeight: 600, letterSpacing: '.06em', borderBottom: '2px solid #FF2A2A33', whiteSpace: 'nowrap' }}>
+                <th key={i} style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--accent)', fontWeight: 600, letterSpacing: '.06em', borderBottom: '2px solid var(--border-strong)', whiteSpace: 'nowrap' }}>
                   {renderInline(cell.trim())}
                 </th>
               ))}
@@ -327,7 +327,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
       flushList();
       elements.push(
         <div key={key++} style={{
-          borderLeft: '3px solid #FF2A2A', paddingLeft: '14px', margin: '8px 0',
+          borderLeft: '3px solid var(--accent)', paddingLeft: '14px', margin: '8px 0',
           color: 'var(--text-muted)', fontStyle: 'italic',
         }}>
           {renderInline(trimmed.replace(/^>\s+/, ''))}
@@ -343,7 +343,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
         <div key={key++} style={{
           fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)',
           letterSpacing: '.08em', marginTop: '24px', marginBottom: '10px',
-          borderBottom: '2px solid #FF2A2A33', paddingBottom: '10px',
+          borderBottom: '2px solid var(--border-default)', paddingBottom: '10px',
         }}>
           {renderInline(trimmed.replace(/^#\s+/, ''))}
         </div>
@@ -491,7 +491,7 @@ export default function MarkdownRenderer({ content, className }: { content: stri
             </div>
             <button 
               onClick={() => setFullscreenDiagram(null)}
-              style={{ background: 'var(--accent)', border: 'none', color: 'var(--text-primary)', padding: '6px 16px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', letterSpacing: '.05em' }}
+              style={{ background: 'var(--accent)', border: 'none', color: '#FFFFFF', padding: '6px 16px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', letterSpacing: '.05em' }}
             >
               [ CLOSE ]
             </button>

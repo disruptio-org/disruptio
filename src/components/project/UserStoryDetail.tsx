@@ -1498,24 +1498,58 @@ ${storyContext}`,
     );
   };
 
-  // --- TAB 9: CODE REVIEW ---
-  const CodeReviewTab = () => {
-    const [reviewData, setReviewData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+  // --- TAB 9: CODE REVIEW (state lifted to parent to survive remounts) ---
+  const [crTabReviewData, setCrTabReviewData] = useState<any>(null);
+  const [crTabLoading, setCrTabLoading] = useState(false);
+  const [crTabError, setCrTabError] = useState('');
+  const crTabFetched = useRef(false);
 
-    useEffect(() => {
-      const prNumber = story.githubPrNumber;
-      if (!prNumber) { setLoading(false); return; }
-      (async () => {
-        try {
-          const res = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=reviews&prNumber=${prNumber}`);
-          const data = await res.json();
-          if (res.ok) setReviewData(data); else setError(data.error);
-        } catch (e: any) { setError(e.message); }
-        setLoading(false);
-      })();
-    }, [story.id, story.githubPrNumber]);
+  // AI Evaluation state (lifted to parent)
+  const [aiEvaluation, setAiEvaluation] = useState<any>(story.codeEvaluation || null);
+  const [aiEvalRunning, setAiEvalRunning] = useState(false);
+  const [aiEvalError, setAiEvalError] = useState('');
+
+  useEffect(() => {
+    if (activeTab !== 'codereview') return;
+    if (!story.githubPrNumber) return;
+    if (crTabFetched.current) return;
+    crTabFetched.current = true;
+    setCrTabLoading(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=reviews&prNumber=${story.githubPrNumber}`);
+        const data = await res.json();
+        if (res.ok) setCrTabReviewData(data); else setCrTabError(data.error);
+      } catch (e: any) { setCrTabError(e.message); }
+      setCrTabLoading(false);
+    })();
+  }, [activeTab, story.id, story.githubPrNumber]);
+
+  const runAiEvaluation = async () => {
+    setAiEvalRunning(true);
+    setAiEvalError('');
+    try {
+      const res = await fetch(`/api/projects/${project.id}/github-dev/evaluate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storyId: story.id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        console.log('[AI Eval] Result:', data.evaluation);
+        setAiEvaluation(data.evaluation);
+        setStory((prev: any) => ({ ...prev, codeEvaluation: data.evaluation }));
+      } else {
+        setAiEvalError(data.error || 'Evaluation failed');
+      }
+    } catch (e: any) { setAiEvalError(e.message); }
+    setAiEvalRunning(false);
+  };
+
+  const CodeReviewTab = () => {
+    const reviewData = crTabReviewData;
+    const loading = crTabLoading;
+    const error = crTabError;
 
     const DECISION_COLORS: Record<string, { bg: string; border: string; text: string; label: string }> = {
       approved: { bg: '#2ECC7115', border: '#2ECC7133', text: 'var(--success)', label: 'APPROVED' },
@@ -1620,36 +1654,16 @@ ${storyContext}`,
         )}
 
         {/* AI Code Evaluation */}
-        <AiEvaluationSection storyId={story.id} projectId={project.id} existingEvaluation={story.codeEvaluation as any} />
+        <AiEvaluationSection />
       </div>
     );
   };
 
-  // --- AI Evaluation Component (used inside CodeReviewTab) ---
-  const AiEvaluationSection = ({ storyId, projectId, existingEvaluation }: { storyId: string; projectId: string; existingEvaluation: any }) => {
-    const [evaluation, setEvaluation] = useState<any>(existingEvaluation || null);
-    const [running, setRunning] = useState(false);
-    const [error, setError] = useState('');
-
-    const runEvaluation = async () => {
-      setRunning(true);
-      setError('');
-      try {
-        const res = await fetch(`/api/projects/${projectId}/github-dev/evaluate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ storyId }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setEvaluation(data.evaluation);
-          setStory((prev: any) => ({ ...prev, codeEvaluation: data.evaluation }));
-        } else {
-          setError(data.error || 'Evaluation failed');
-        }
-      } catch (e: any) { setError(e.message); }
-      setRunning(false);
-    };
+  // --- AI Evaluation Component (uses parent-level state to survive remounts) ---
+  const AiEvaluationSection = () => {
+    const evaluation = aiEvaluation;
+    const running = aiEvalRunning;
+    const error = aiEvalError;
 
     const SEVERITY_COLORS: Record<string, string> = { high: 'var(--accent)', medium: 'var(--warning)', low: 'var(--text-faint)' };
 
@@ -1660,7 +1674,7 @@ ${storyContext}`,
           <button
             className="ds-btn-primary ds-btn-sm"
             disabled={running || !story.githubPrNumber}
-            onClick={runEvaluation}
+            onClick={runAiEvaluation}
             style={{ letterSpacing: '.1em' }}
           >
             {running ? '[ EVALUATING... ]' : evaluation ? '[ RE-EVALUATE ]' : '[ RUN EVALUATION ]'}

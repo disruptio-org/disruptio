@@ -66,6 +66,45 @@
 
   /* Transitions */
   --transition-fast: 0.12s ease;
+
+  /* Markdown/Documentation */
+  --md-code-bg: #161616;
+  --md-code-border: #2A2A2A;
+  --md-blockquote-bg: #0D0D0D;
+  --md-table-header-bg: #0A0A0A;
+  --md-table-row-hover: #121212;
+}
+
+/*
+ * Dark Theme (explicit)
+ * The :root block above defines dark theme as default.
+ * This block is provided for clarity and documentation.
+ * When adding new tokens, add them to :root AND [data-theme='light'].
+ */
+[data-theme="dark"] {
+  --bg-primary: #0A0A0A;
+  --bg-surface: #000000;
+  --bg-elevated: #0D0D0D;
+  --bg-hover: #121212;
+  --bg-input: #000000;
+  --border-default: #1F1F1F;
+  --border-subtle: #161616;
+  --border-input: #2A2A2A;
+  --border-strong: #3A3A3A;
+  --text-primary: #FFFFFF;
+  --text-secondary: #B3B3B3;
+  --text-muted: #8A8A8A;
+  --text-dim: #6A6A6A;
+  --text-faint: #5A5A5A;
+  --text-ghost: #4A4A4A;
+  --text-phantom: #3A3A3A;
+
+  /* Markdown/Documentation specific */
+  --md-code-bg: #161616;
+  --md-code-border: #2A2A2A;
+  --md-blockquote-bg: #0D0D0D;
+  --md-table-header-bg: #0A0A0A;
+  --md-table-row-hover: #121212;
 }
 
 /* Light Theme */
@@ -83,15 +122,22 @@
   --accent-hover: #E01E1E;
   --accent-glow: rgba(255, 42, 42, 0.12);
   --text-primary: #1C1E21;
-  --text-secondary: #4A4A4A;
-  --text-muted: #6A6A6A;
-  --text-dim: #8A8A8A;
-  --text-faint: #A0A0A0;
-  --text-ghost: #B0B0B0;
-  --text-phantom: #C0C0C0;
-  --success: #27AE60;
-  --error: #E74C3C;
-  --warning: #E67E22;
+  --text-secondary: #3D3D3D;
+  --text-muted: #555555;
+  --text-dim: #6E6E6E;
+  --text-faint: #767676; /* WCAG AA minimum contrast on white */
+  --text-ghost: #949494;
+  --text-phantom: #B0B0B0;
+  --success: #1E8449;
+  --error: #C0392B;
+  --warning: #D35400;
+
+  /* Markdown/Documentation specific */
+  --md-code-bg: #F0F0F0;
+  --md-code-border: #D0D0D0;
+  --md-blockquote-bg: #F5F5F5;
+  --md-table-header-bg: #F0F0F0;
+  --md-table-row-hover: #F5F5F5;
 }
 
 html {
@@ -500,4 +546,33 @@ button {
 .ds-toggle--inactive:hover {
   background: var(--bg-elevated);
   color: var(--text-muted);
+}
+
+/* ============================================================
+ * Theme Guide for Contributors
+ * ============================================================
+ * 
+ * ADDING THEME-AWARE STYLES:
+ * 1. Always use CSS variables (var(--bg-primary), var(--text-primary), etc.)
+ * 2. Never hardcode hex colors in components — use variables instead
+ * 3. If you need a new token, add it to BOTH :root AND [data-theme='light']
+ * 4. Test your component in both light and dark modes
+ *
+ * THEME TOKENS:
+ * - Backgrounds: --bg-primary, --bg-surface, --bg-elevated, --bg-hover, --bg-input
+ * - Borders: --border-default, --border-subtle, --border-input, --border-strong
+ * - Text: --text-primary, --text-secondary, --text-muted, --text-dim, --text-faint
+ * - Accent: --accent, --accent-hover, --accent-glow
+ * - Status: --success, --error, --warning
+ * - Markdown: --md-code-bg, --md-code-border, --md-blockquote-bg, etc.
+ *
+ * The dark theme is the default (:root). Light theme overrides are in
+ * [data-theme='light']. The ThemeProvider applies the data-theme attribute
+ * to <html> based on user preference stored in localStorage.
+ * ============================================================ */
+
+/* Focus-visible utility for interactive elements */
+.ds-focusable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
