@@ -3,14 +3,17 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createOctokit } from '@/lib/github';
-import { createProjectClient, resolveModel, safeCompletion } from '@/lib/openai';
+import { createProjectClient, resolveModel } from '@/lib/openai';
 import { cookies } from 'next/headers';
 
 /**
  * POST /api/projects/[projectId]/github-dev/evaluate
  * 
- * Runs an AI evaluation of the PR diff against the user story's
+ * Runs an AI evaluation of the PR against the user story's
  * acceptance criteria, requirements, and gherkin scenarios.
+ * 
+ * Strategy: Fetches FULL file contents from the PR branch (not just diffs)
+ * so the AI can verify complete implementations, not just changes.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -40,23 +43,91 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
   const owner = connection.owner;
   const repo = connection.repository;
 
-  // 1. Fetch PR diff (files changed)
-  let diffSummary = '';
+  // 1. Fetch PR info and changed files
+  let prContext = '';
   try {
+    // Get PR metadata
+    const { data: pr } = await octokit.pulls.get({
+      owner, repo, pull_number: story.githubPrNumber,
+    });
+
+    // Get list of changed files
     const { data: files } = await octokit.pulls.listFiles({
       owner, repo, pull_number: story.githubPrNumber, per_page: 100,
     });
-    diffSummary = files.map((f: any) => {
-      const patch = f.patch ? f.patch.slice(0, 1500) : '(binary or too large)';
-      return `### ${f.filename} (${f.status}, +${f.additions} -${f.deletions})\n\`\`\`diff\n${patch}\n\`\`\``;
-    }).join('\n\n');
 
-    // Cap total diff size
-    if (diffSummary.length > 30000) {
-      diffSummary = diffSummary.slice(0, 30000) + '\n\n... (diff truncated)';
+    // Build a compact file list summary
+    const fileList = files.map((f: any) =>
+      `- ${f.filename} (${f.status}, +${f.additions} -${f.deletions})`
+    ).join('\n');
+
+    // For each changed file, fetch the FULL content from the PR branch
+    // This is much better than diffs because the AI can see complete implementations
+    const fileContents: string[] = [];
+    let totalContentSize = 0;
+    const MAX_TOTAL_CONTENT = 60000; // 60k chars total for file contents
+    const MAX_PER_FILE = 4000; // 4k chars per file
+
+    for (const f of files) {
+      if (totalContentSize > MAX_TOTAL_CONTENT) {
+        fileContents.push(`### ${f.filename}\n(file content omitted — total content limit reached. See diff summary below.)`);
+        continue;
+      }
+
+      // Skip binary files and very large files
+      if (!f.patch && f.status !== 'removed') {
+        fileContents.push(`### ${f.filename}\n(binary or very large file — see diff summary below)`);
+        continue;
+      }
+
+      // Skip removed files
+      if (f.status === 'removed') {
+        fileContents.push(`### ${f.filename} [DELETED]`);
+        continue;
+      }
+
+      try {
+        // Fetch full file content from the PR branch
+        const { data: content } = await octokit.repos.getContent({
+          owner, repo,
+          path: f.filename,
+          ref: pr.head.ref,
+        });
+
+        if ('content' in content && content.encoding === 'base64') {
+          const decoded = Buffer.from(content.content, 'base64').toString('utf-8');
+          const trimmed = decoded.length > MAX_PER_FILE
+            ? decoded.slice(0, MAX_PER_FILE) + '\n\n... (file truncated at ' + MAX_PER_FILE + ' chars)'
+            : decoded;
+          fileContents.push(`### ${f.filename} (${f.status}, +${f.additions} -${f.deletions})\n\`\`\`\n${trimmed}\n\`\`\``);
+          totalContentSize += trimmed.length;
+        } else {
+          // Fallback to diff patch
+          const patch = f.patch ? f.patch.slice(0, MAX_PER_FILE) : '(no content available)';
+          fileContents.push(`### ${f.filename} (${f.status}, +${f.additions} -${f.deletions})\n\`\`\`diff\n${patch}\n\`\`\``);
+          totalContentSize += patch.length;
+        }
+      } catch {
+        // Fallback to diff patch if file fetch fails
+        const patch = f.patch ? f.patch.slice(0, MAX_PER_FILE) : '(content not available)';
+        fileContents.push(`### ${f.filename} (${f.status})\n\`\`\`diff\n${patch}\n\`\`\``);
+        totalContentSize += patch.length;
+      }
     }
+
+    prContext = `## PR #${pr.number}: ${pr.title}
+Branch: ${pr.head.ref} → ${pr.base.ref}
+State: ${pr.state}
+Changed files: ${files.length}
+
+### Files Changed
+${fileList}
+
+## Full File Contents (from PR branch)
+${fileContents.join('\n\n')}`;
+
   } catch (err: any) {
-    return NextResponse.json({ error: `Failed to fetch PR diff: ${err.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Failed to fetch PR data: ${err.message}` }, { status: 500 });
   }
 
   // 2. Build the context from story data
@@ -82,13 +153,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
   const client = createProjectClient(project || {});
   const model = resolveModel(project?.aiModel || 'gpt-4o');
 
-  const systemPrompt = `You are a senior code reviewer. You evaluate pull request diffs against user story specifications.
+  const systemPrompt = `You are a senior code reviewer evaluating a pull request against user story specifications.
+
+You are provided with the FULL FILE CONTENTS from the PR branch — not just diffs. This means you can see the complete implementation, including code that was already there before this PR.
 
 You MUST respond with valid JSON in this exact format:
 {
   "score": <number 0-100>,
   "criteriaResults": [
-    { "criterion": "<acceptance criterion text>", "met": <boolean>, "evidence": "<brief explanation>" }
+    { "criterion": "<acceptance criterion text>", "met": <boolean>, "evidence": "<brief explanation referencing specific files and code>" }
   ],
   "requirementResults": [
     { "requirement": "<requirement text>", "met": <boolean>, "evidence": "<brief explanation>" }
@@ -102,26 +175,25 @@ You MUST respond with valid JSON in this exact format:
   "summary": "<2-3 sentence summary of the evaluation>"
 }
 
-Rules:
-- Check each acceptance criterion against the actual code changes
-- Mark a criterion as "met" only if the diff clearly implements it
-- Flag security risks, missing error handling, performance concerns
-- Be specific: reference file names and line patterns from the diff
-- Score: 0-100 based on percentage of criteria met and code quality`;
+EVALUATION RULES:
+1. You have FULL file contents — judge based on what the code ACTUALLY does, not just what the diff shows.
+2. Mark a criterion as "met" if the implementation in the provided files satisfies it, even if not all files are shown.
+3. Focus on FUNCTIONAL correctness: does the code actually implement the feature described?
+4. For non-functional requirements (testing, documentation, accessibility), be proportionally lenient — these are nice-to-have, not blockers.
+5. Reference specific file names and implementation details in your evidence.
+6. Score: Calculate based on weighted criteria — acceptance criteria are worth 70%, non-functional requirements worth 30%.
+7. DO NOT penalize for code quality issues in files that are NOT part of this feature (e.g., unrelated API routes).
+8. If a file's content was truncated, note this but do NOT assume the missing code is broken.`;
 
-  const userPrompt = `Evaluate this PR diff against the user story specification.
+  const userPrompt = `Evaluate this pull request against the user story specification.
 
 ${contextBlock}
 
 ---
 
-## PR Diff
-
-${diffSummary}`;
+${prContext}`;
 
   try {
-    // Use direct API call with json_object format to force valid JSON output
-    // gpt-5.5 and similar models need explicit response_format to produce structured output
     let completion;
     try {
       completion = await client.chat.completions.create({
@@ -135,35 +207,31 @@ ${diffSummary}`;
         response_format: { type: 'json_object' },
       });
     } catch (retryErr: any) {
-      // Retry without temperature and response_format if the model doesn't support them
-      console.log('[AI Eval] First attempt failed, retrying without temperature:', retryErr.message);
+      console.log('[AI Eval] First attempt failed, retrying:', retryErr.message);
       completion = await client.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: systemPrompt + '\n\nIMPORTANT: You MUST respond with valid JSON only. No markdown, no explanation, just the JSON object.' },
+          { role: 'system', content: systemPrompt + '\n\nIMPORTANT: You MUST respond with valid JSON only.' },
           { role: 'user', content: userPrompt },
         ],
         max_completion_tokens: 16000,
       });
     }
 
-    console.log('[AI Eval] Completion finish_reason:', completion.choices[0]?.finish_reason);
-    console.log('[AI Eval] Completion usage:', JSON.stringify(completion.usage));
-    console.log('[AI Eval] Completion message role:', completion.choices[0]?.message?.role);
-    console.log('[AI Eval] Completion message refusal:', (completion.choices[0]?.message as any)?.refusal);
-    console.log('[AI Eval] Full message keys:', Object.keys(completion.choices[0]?.message || {}));
-    console.log('[AI Eval] Full message:', JSON.stringify(completion.choices[0]?.message).substring(0, 2000));
+    console.log('[AI Eval] finish_reason:', completion.choices[0]?.finish_reason);
+    console.log('[AI Eval] usage:', JSON.stringify(completion.usage));
 
     const raw = completion.choices[0]?.message?.content || '{}';
-    console.log('[AI Eval] Raw AI response length:', raw.length);
-    console.log('[AI Eval] Raw AI response (first 1000 chars):', raw.substring(0, 1000));
+    console.log('[AI Eval] Response length:', raw.length);
+    console.log('[AI Eval] Response preview:', raw.substring(0, 500));
+
     // Extract JSON from potential markdown code block
     const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, raw];
     let evaluation: any;
     try {
       evaluation = JSON.parse(jsonMatch[1]?.trim() || raw.trim());
     } catch {
-      console.error('[AI Eval] Failed to parse JSON from AI response');
+      console.error('[AI Eval] Failed to parse JSON');
       evaluation = { score: 0, summary: 'Failed to parse AI response', criteriaResults: [], requirementResults: [], risks: [], suggestions: [], rawResponse: raw };
     }
 
@@ -172,7 +240,7 @@ ${diffSummary}`;
     evaluation.model = model;
     evaluation.prNumber = story.githubPrNumber;
 
-    console.log('[AI Eval] Final evaluation score:', evaluation.score, 'keys:', Object.keys(evaluation));
+    console.log('[AI Eval] Score:', evaluation.score);
 
     // Save to database
     await prisma.userStory.update({

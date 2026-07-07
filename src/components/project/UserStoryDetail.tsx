@@ -1805,6 +1805,9 @@ ${storyContext}`,
     const [shipData, setShipData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [mergeMethod, setMergeMethod] = useState('squash');
+    const [merging, setMerging] = useState(false);
+    const [mergeError, setMergeError] = useState('');
 
     useEffect(() => {
       const prNumber = story.githubPrNumber;
@@ -1859,6 +1862,55 @@ ${storyContext}`,
             <div style={{ padding: '16px', background: '#F39C1210', border: '1px solid #F39C1233' }}>
               <div style={{ fontSize: '12px', letterSpacing: '.1em', color: 'var(--warning)', fontWeight: 700 }}>NOT MERGED</div>
               <div style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '4px' }}>Pull request is still open. Merge to complete this story.</div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px', alignItems: 'center' }}>
+                <select
+                  id="merge-method-select"
+                  value={mergeMethod}
+                  onChange={(e) => setMergeMethod(e.target.value)}
+                  style={{
+                    background: 'var(--bg-input)', border: '1px solid var(--border-input)',
+                    color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontSize: '10px',
+                    padding: '6px 10px', letterSpacing: '.05em',
+                  }}
+                >
+                  <option value="squash">SQUASH & MERGE</option>
+                  <option value="merge">MERGE COMMIT</option>
+                  <option value="rebase">REBASE & MERGE</option>
+                </select>
+                <button
+                  className="ds-btn-primary ds-btn-sm"
+                  disabled={merging}
+                  onClick={async () => {
+                    if (!confirm(`Are you sure you want to ${mergeMethod} PR #${story.githubPrNumber} into main?`)) return;
+                    setMerging(true);
+                    setMergeError('');
+                    try {
+                      const res = await fetch(`/api/projects/${project.id}/github-dev/merge`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ storyId: story.id, mergeMethod }),
+                      });
+                      const data = await res.json();
+                      if (res.ok && data.merged) {
+                        setStory((prev: any) => ({ ...prev, status: 'done' }));
+                        // Refresh ship data to show merged state
+                        const shipRes = await fetch(`/api/projects/${project.id}/github-dev?storyId=${story.id}&type=ship&prNumber=${story.githubPrNumber}`);
+                        const shipJson = await shipRes.json();
+                        if (shipRes.ok) setShipData(shipJson);
+                      } else {
+                        setMergeError(data.error || 'Merge failed');
+                      }
+                    } catch (e: any) { setMergeError(e.message); }
+                    setMerging(false);
+                  }}
+                  style={{ letterSpacing: '.1em' }}
+                >
+                  {merging ? '[ MERGING... ]' : '[ MERGE PR ]'}
+                </button>
+              </div>
+              {mergeError && (
+                <div style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '8px' }}>{mergeError}</div>
+              )}
             </div>
           )}
         </div>
